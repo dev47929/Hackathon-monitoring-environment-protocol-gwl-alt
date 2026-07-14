@@ -1,0 +1,6 @@
+{
+  "name": "HackProof AI",
+  "description": "AI-powered Hackathon Monitoring and Evaluation Platform with Blockchain-based audit logging for fair, transparent, and intelligent judging.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
