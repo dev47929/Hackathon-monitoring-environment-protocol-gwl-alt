@@ -8,6 +8,7 @@ import {
 
 import { Team, HackathonStats, ActivityLog, AuthenticatedUser } from './types';
 import { INITIAL_TEAMS, MOCK_STATS, INITIAL_ACTIVITY_LOGS } from './data/mockData';
+import { TeamsAPI, AnalyticsAPI } from './services/api';
 
 // Component imports
 import LandingPage from './components/LandingPage';
@@ -18,9 +19,38 @@ import AuthGate from './components/AuthGate';
 
 export default function App() {
   const [teams, setTeams] = useState<Team[]>(INITIAL_TEAMS);
+  const [stats, setStats] = useState<HackathonStats>(MOCK_STATS);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(INITIAL_ACTIVITY_LOGS);
   const [selectedTeamId, setSelectedTeamId] = useState<string>('team-1');
   const [currentRole, setCurrentRole] = useState<'landing' | 'team' | 'judge' | 'organizer' | 'auth'>('landing');
+
+  // Load actual backend data on initialization if server is up
+  useEffect(() => {
+    async function loadBackendData() {
+      try {
+        const loadedTeams = await TeamsAPI.getAll();
+        if (loadedTeams && loadedTeams.length > 0) {
+          setTeams(loadedTeams);
+          setSelectedTeamId(loadedTeams[0].id);
+        }
+      } catch (e) {
+        console.warn('Failed to load teams from backend, using mocks:', e);
+      }
+      try {
+        const loadedStats = await AnalyticsAPI.getStats();
+        if (loadedStats) setStats(loadedStats);
+      } catch (e) {
+        console.warn('Failed to load stats from backend, using mocks:', e);
+      }
+      try {
+        const loadedLogs = await AnalyticsAPI.getActivityLogs();
+        if (loadedLogs && loadedLogs.length > 0) setActivityLogs(loadedLogs);
+      } catch (e) {
+        console.warn('Failed to load logs from backend, using mocks:', e);
+      }
+    }
+    loadBackendData();
+  }, []);
   
   // Authenticated user state initialized from local cache
   const [user, setUser] = useState<AuthenticatedUser | null>(() => {
@@ -47,6 +77,20 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // Sync state with backend whenever actions happen
+  const triggerRefresh = async () => {
+    try {
+      const loadedTeams = await TeamsAPI.getAll();
+      if (loadedTeams) setTeams(loadedTeams);
+      const loadedStats = await AnalyticsAPI.getStats();
+      if (loadedStats) setStats(loadedStats);
+      const loadedLogs = await AnalyticsAPI.getActivityLogs();
+      if (loadedLogs) setActivityLogs(loadedLogs);
+    } catch (e) {
+      console.warn('Failed to refresh data:', e);
+    }
+  };
+
   // Update a team's state globally
   const handleUpdateTeam = (updatedTeam: Team) => {
     setTeams(prevTeams => prevTeams.map(t => t.id === updatedTeam.id ? updatedTeam : t));
@@ -66,17 +110,20 @@ export default function App() {
         setNotification(null);
       }, 6000);
     }
+    triggerRefresh();
   };
 
   // Add a new activity log
   const handleAddActivityLog = (newLog: ActivityLog) => {
     setActivityLogs(prevLogs => [newLog, ...prevLogs]);
+    triggerRefresh();
   };
 
   // Register a new team
   const handleRegisterTeam = (newTeam: Team) => {
     setTeams(prevTeams => [...prevTeams, newTeam]);
     setSelectedTeamId(newTeam.id);
+    triggerRefresh();
   };
 
   return (
@@ -398,7 +445,7 @@ export default function App() {
                         {currentRole === 'organizer' && (
                           <OrganizerDashboard 
                             teams={teams}
-                            stats={MOCK_STATS}
+                            stats={stats}
                             activityLogs={activityLogs}
                             onRegisterTeam={handleRegisterTeam}
                             onAddActivityLog={handleAddActivityLog}
