@@ -71,14 +71,6 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
     <div className="space-y-16">
       {/* Hero Section */}
       <section className="text-center py-12 md:py-20 max-w-4xl mx-auto space-y-6 px-4">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="inline-flex items-center gap-2 bg-slate-900 border border-slate-800 px-4 py-1.5 rounded-full text-xs font-mono text-indigo-400"
-        >
-          <span className="w-2 h-2 rounded-full bg-indigo-500 animate-ping"></span>
-          <span>INTRODUCING HACKPROOF AI // REVOLUTIONIZING HACKATHONS</span>
-        </motion.div>
 
         <motion.h1
           initial={{ opacity: 0, y: 15 }}
@@ -107,23 +99,23 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.3 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-950/80 border border-slate-800 rounded-2xl p-4 text-left max-w-3xl mx-auto"
+          className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-indigo-950/40 border border-indigo-800/30 rounded-2xl p-5 text-left max-w-4xl mx-auto"
         >
-          <div className="p-2">
-            <div className="text-xs text-slate-500 font-mono">TRACKING STATUS</div>
-            <div className="text-lg font-bold text-emerald-400">ACTIVE</div>
+          <div className="p-5 rounded-xl bg-emerald-500/5 border border-emerald-500/10 space-y-2">
+            <div className="text-xs text-slate-500 font-mono tracking-wider uppercase">TRACKING STATUS</div>
+            <div className="text-2xl font-bold text-emerald-400">ACTIVE</div>
           </div>
-          <div className="p-2 border-l border-slate-900">
-            <div className="text-xs text-slate-500 font-mono">COMMIT LEDGER</div>
-            <div className="text-lg font-bold text-white">IMMUTABLE</div>
+          <div className="p-5 rounded-xl bg-slate-800/40 border border-slate-700/20 space-y-2">
+            <div className="text-xs text-slate-500 font-mono tracking-wider uppercase">COMMIT LEDGER</div>
+            <div className="text-2xl font-bold text-white">IMMUTABLE</div>
           </div>
-          <div className="p-2 border-l border-slate-900">
-            <div className="text-xs text-slate-500 font-mono">ANOMALIES RESOLVED</div>
-            <div className="text-lg font-bold text-teal-400">99.4%</div>
+          <div className="p-5 rounded-xl bg-teal-500/5 border border-teal-500/10 space-y-2">
+            <div className="text-xs text-slate-500 font-mono tracking-wider uppercase">ANOMALIES RESOLVED</div>
+            <div className="text-2xl font-bold text-teal-400">99.4%</div>
           </div>
-          <div className="p-2 border-l border-slate-900">
-            <div className="text-xs text-slate-500 font-mono">EVALUATION SPEED</div>
-            <div className="text-lg font-bold text-white">INSTANT</div>
+          <div className="p-5 rounded-xl bg-indigo-500/5 border border-indigo-500/10 space-y-2">
+            <div className="text-xs text-slate-500 font-mono tracking-wider uppercase">EVALUATION SPEED</div>
+            <div className="text-2xl font-bold text-indigo-300">INSTANT</div>
           </div>
         </motion.div>
 

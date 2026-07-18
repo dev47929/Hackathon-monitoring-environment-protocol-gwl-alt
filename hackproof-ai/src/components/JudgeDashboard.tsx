@@ -169,7 +169,7 @@ ${currentTeam.interviewQuestions.map((q, idx) => `**Q${idx + 1}: ${q.question}**
       {/* Team Selection Header */}
       <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white tracking-tight uppercase font-mono">Judging Operations Cockpit</h2>
+          <h2 className="text-xl font-bold text-white tracking-tight uppercase font-mono">Judging Operations</h2>
           <p className="text-xs text-slate-400 mt-0.5">Select a participating team below to audit code timelines, interview them, and verify live presentation claims.</p>
         </div>
 
@@ -188,7 +188,6 @@ ${currentTeam.interviewQuestions.map((q, idx) => `**Q${idx + 1}: ${q.question}**
                     : 'bg-slate-900 hover:bg-slate-850 text-slate-300 border-slate-800'
                 }`}
               >
-                <span>{t.avatar}</span>
                 <span className="font-semibold">{t.name}</span>
                 {flaggedCount > 0 && (
                   <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
@@ -210,27 +209,15 @@ ${currentTeam.interviewQuestions.map((q, idx) => `**Q${idx + 1}: ${q.question}**
         <div className="space-y-6 lg:col-span-1">
           {/* Main Team Card Profile */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-            <div className="flex justify-between items-start">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-slate-950 flex items-center justify-center text-2xl border border-slate-800">
-                  {currentTeam.avatar}
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white">{currentTeam.name}</h3>
-                  <a href={currentTeam.repoUrl} target="_blank" rel="noreferrer" className="text-[11px] text-emerald-400 font-mono hover:underline truncate block max-w-[150px]">
-                    {currentTeam.repoUrl.replace('https://github.com/', '')}
-                  </a>
-                </div>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-slate-950 flex items-center justify-center text-2xl border border-slate-800">
+                {currentTeam.avatar}
               </div>
-              <div className={`p-2 rounded-xl text-center border ${
-                currentTeam.overallRiskScore > 50 
-                  ? 'bg-rose-950/20 border-rose-900/60 text-rose-400' 
-                  : currentTeam.overallRiskScore > 20 
-                    ? 'bg-amber-950/20 border-amber-900/60 text-amber-400' 
-                    : 'bg-emerald-950/20 border-emerald-900/60 text-emerald-400'
-              }`}>
-                <div className="text-[9px] font-mono uppercase tracking-wider">RISK INDEX</div>
-                <div className="text-base font-bold">{currentTeam.overallRiskScore}%</div>
+              <div>
+                <h3 className="text-base font-bold text-white">{currentTeam.name}</h3>
+                <a href={currentTeam.repoUrl} target="_blank" rel="noreferrer" className="text-[11px] text-emerald-400 font-mono hover:underline truncate block max-w-[150px]">
+                  {currentTeam.repoUrl.replace('https://github.com/', '')}
+                </a>
               </div>
             </div>
 
@@ -238,14 +225,10 @@ ${currentTeam.interviewQuestions.map((q, idx) => `**Q${idx + 1}: ${q.question}**
               {currentTeam.description}
             </p>
 
-            <div className="grid grid-cols-2 gap-3 pt-2">
+            <div className="pt-2">
               <div className="bg-slate-950 p-3 rounded-xl border border-slate-850">
                 <span className="text-[10px] font-mono text-slate-500 uppercase block">AI Progress</span>
                 <span className="text-sm font-semibold text-white">{currentTeam.progress}% Evaluated</span>
-              </div>
-              <div className="bg-slate-950 p-3 rounded-xl border border-slate-850">
-                <span className="text-[10px] font-mono text-slate-500 uppercase block">Active Roster</span>
-                <span className="text-sm font-semibold text-white">{currentTeam.members.length} Hackers</span>
               </div>
             </div>
           </div>
@@ -254,7 +237,7 @@ ${currentTeam.interviewQuestions.map((q, idx) => `**Q${idx + 1}: ${q.question}**
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider font-mono flex items-center gap-2">
               <ShieldAlert className="w-4 h-4 text-rose-400" />
-              Anomaly Audit Log
+              Activity Flags & Team Violations
             </h3>
 
             {currentTeam.commits.filter(c => c.isSuspicious).length === 0 ? (
@@ -405,36 +388,36 @@ ${currentTeam.interviewQuestions.map((q, idx) => `**Q${idx + 1}: ${q.question}**
                       <div className="bg-slate-900 border border-slate-800/80 rounded-xl p-4 space-y-3 hover:border-slate-700 transition-all">
                         <div className="flex items-center justify-between border-b border-slate-850 pb-2">
                           <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-mono bg-slate-950 px-2 py-0.5 rounded text-slate-400 border border-slate-850">
+                            <span className="text-xs font-mono bg-slate-950 px-2 py-0.5 rounded text-slate-400 border border-slate-850">
                               {commit.hash}
                             </span>
-                            <span className="text-xs font-semibold text-white">{commit.message}</span>
+                            <span className="text-sm font-semibold text-white">{commit.message}</span>
                           </div>
-                          <span className="text-[11px] font-mono text-slate-500">
+                          <span className="text-xs font-mono text-slate-500">
                             {new Date(commit.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
 
                         <div className="text-xs text-slate-300 space-y-2">
-                          <p className="leading-relaxed bg-slate-950 p-2.5 rounded-lg border border-slate-850 text-slate-300 font-mono text-[11px]">
-                            <strong className="text-pink-400 font-mono uppercase text-[10px] block mb-1">🤖 AI EXCERPT SUMMARY:</strong>
+                          <p className="leading-relaxed bg-slate-950 p-2.5 rounded-lg border border-slate-850 text-slate-300 font-mono text-xs">
+                            <strong className="text-pink-400 font-mono uppercase text-[11px] block mb-1">🤖 AI EXCERPT SUMMARY:</strong>
                             {commit.aiSummary}
                           </p>
-                          <div className="flex justify-between items-center text-[10px] text-slate-500 font-mono">
+                          <div className="flex justify-between items-center text-xs text-slate-500 font-mono">
                             <span>Author: <strong className="text-slate-400">{commit.author}</strong></span>
                             <span>Line changes: <strong className="text-emerald-400">+{commit.additions}</strong> / <strong className="text-rose-400">-{commit.deletions}</strong></span>
                           </div>
                         </div>
 
                         {/* Blockchain block receipt */}
-                        <div className="flex items-center justify-between text-[10px] font-mono bg-slate-950/40 border border-slate-850/40 px-3 py-1.5 rounded-lg text-slate-400">
+                        <div className="flex items-center justify-between text-xs font-mono bg-slate-950/40 border border-slate-850/40 px-3 py-1.5 rounded-lg text-slate-400">
                           <span>TXN: <span className="text-slate-500">{commit.blockchainTx.substring(0, 24)}...</span></span>
                           {commit.blockchainStatus === 'verified' ? (
-                            <span className="text-emerald-400 font-semibold flex items-center gap-1 text-[9px]">
+                            <span className="text-emerald-400 font-semibold flex items-center gap-1 text-[11px]">
                               ✔ LEDGER CERTIFIED
                             </span>
                           ) : (
-                            <span className="text-rose-400 font-semibold flex items-center gap-1 text-[9px] animate-pulse">
+                            <span className="text-rose-400 font-semibold flex items-center gap-1 text-[11px] animate-pulse">
                               ✖ LEDGER REJECTED
                             </span>
                           )}
@@ -609,9 +592,6 @@ ${currentTeam.interviewQuestions.map((q, idx) => `**Q${idx + 1}: ${q.question}**
                           <h5 className="text-xs font-semibold text-white leading-relaxed">
                             {q.question}
                           </h5>
-                          <p className="text-[10px] text-slate-500 font-mono">
-                            TRIGGER CONTEXT: {q.context}
-                          </p>
                         </div>
                       </div>
 

@@ -201,17 +201,7 @@ export default function App() {
               </div>
             </button>
 
-            {/* Time / Status element */}
-            <div className="hidden lg:flex items-center gap-4 border-l border-slate-900 pl-4 text-xs font-mono text-slate-500">
-              <div className="flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-slate-500" />
-                <span>{simulatedTime}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>LEDGER: SECURED</span>
-              </div>
-            </div>
+
           </div>
 
           {/* Navigation & User Authentication Widgets */}
@@ -220,49 +210,46 @@ export default function App() {
             <div className="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-850">
               <button
                 onClick={() => setCurrentRole('landing')}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-mono font-semibold transition-all cursor-pointer ${
                   currentRole === 'landing'
                     ? 'bg-slate-950 text-white shadow-sm border border-slate-850'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <Compass className="w-3.5 h-3.5" />
+                <Compass className="w-4 h-4" />
                 <span className="hidden sm:inline">Landing</span>
               </button>
 
               <button
                 onClick={() => setCurrentRole('team')}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-mono font-semibold transition-all cursor-pointer ${
                   currentRole === 'team'
                     ? 'bg-slate-950 text-white shadow-sm border border-slate-850'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <User className="w-3.5 h-3.5 text-indigo-400" />
                 <span className="hidden sm:inline">Team Hub</span>
               </button>
 
               <button
                 onClick={() => setCurrentRole('judge')}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-mono font-semibold transition-all cursor-pointer ${
                   currentRole === 'judge'
                     ? 'bg-slate-950 text-white shadow-sm border border-slate-850'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <Gavel className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="hidden sm:inline">Judge Cockpit</span>
               </button>
 
               <button
                 onClick={() => setCurrentRole('organizer')}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-mono font-semibold transition-all cursor-pointer ${
                   currentRole === 'organizer'
                     ? 'bg-slate-950 text-white shadow-sm border border-slate-850'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <Settings className="w-3.5 h-3.5 text-teal-400" />
                 <span className="hidden sm:inline">Organizer Control</span>
               </button>
             </div>
@@ -278,17 +265,14 @@ export default function App() {
                   <span>Sign In</span>
                 </button>
               ) : (
-                <div className="w-full lg:w-auto flex items-center justify-between lg:justify-start gap-2 bg-slate-900 border border-slate-800 p-1 pl-2.5 pr-1.5 rounded-xl">
+                <div className="w-full lg:w-auto flex items-center justify-between lg:justify-start gap-2 bg-slate-900 border border-slate-800 p-1.5 pl-3 pr-2 rounded-xl">
                   <div className="flex flex-col text-left">
-                    <span className="text-[10px] font-bold text-white leading-none max-w-[120px] truncate">
+                    <span className="text-xs font-bold text-white leading-none max-w-[140px] truncate">
                       {user.name}
                     </span>
-                    <span className="text-[8px] font-mono uppercase text-indigo-400 font-extrabold tracking-wider mt-0.5">
+                    <span className="text-[10px] font-mono uppercase text-indigo-400 font-extrabold tracking-wider mt-0.5">
                       {user.role === 'team' ? 'Hacker' : user.role}
                     </span>
-                  </div>
-                  <div className="w-7 h-7 rounded-lg bg-indigo-500/15 border border-indigo-500/35 text-indigo-400 flex items-center justify-center font-mono font-bold text-xs uppercase shadow-inner">
-                    {user.name.substring(0, 2)}
                   </div>
                   <button
                     type="button"
@@ -297,7 +281,7 @@ export default function App() {
                       setUser(null);
                       setCurrentRole('landing');
                     }}
-                    className="p-1 text-slate-500 hover:text-slate-300 font-mono text-[9px] cursor-pointer hover:bg-slate-950 rounded border border-transparent hover:border-slate-800 transition-colors"
+                    className="p-1 text-slate-500 hover:text-slate-300 font-mono text-xs cursor-pointer hover:bg-slate-950 rounded border border-transparent hover:border-slate-800 transition-colors"
                     title="Sign Out Session"
                   >
                     Exit
