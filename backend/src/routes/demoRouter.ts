@@ -12,7 +12,7 @@ const presentationSchema = z.object({
 });
 
 demoRouter.post('/teams/:id/verify-presentation', asyncHandler(async (req, res) => {
-  const team = repo.getTeamById(req.params.id);
+  const team = await repo.getTeamById(req.params.id);
   if (!team) throw notFound('Team not found.');
 
   const parsed = presentationSchema.safeParse({ transcript: req.body?.transcript });
@@ -42,6 +42,7 @@ demoRouter.post('/teams/:id/verify-presentation', asyncHandler(async (req, res) 
     const r = results[i];
     team.claimedFeatures[i].status = r.status;
   }
+  await repo.updateTeam(team.id, { claimedFeatures: team.claimedFeatures });
 
   res.json({
     status: 'success',

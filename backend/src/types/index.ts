@@ -23,6 +23,8 @@ export interface Commit {
   category: Category;
   blockchainTx: string;
   blockchainStatus: BlockchainStatus;
+  blockNumber?: number;
+  eventHash?: string;
   isSuspicious?: boolean;
   suspiciousReason?: string;
   riskScore: number;

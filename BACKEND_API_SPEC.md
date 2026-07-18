@@ -32,7 +32,7 @@ HackProof AI enforces hackathon integrity using a dual-security anchor:
          ▼                                      ▼                               ▼
 ┌───────────────────┐                 ┌───────────────────┐           ┌───────────────────┐
 │    GitHub API     │                 │    Gemini API     │           │ L1/L2 Blockchain  │
-│ (api.github.com)  │                 │  (@google/genai)  │           │   (EVM / Sol)     │
+│ (api.github.com)  │                 │  (@google/genai)  │    │  (DB Sim Chain)   │
 └───────────────────┘                 └───────────────────┘           └───────────────────┘
 ```
 
@@ -48,7 +48,7 @@ PORT=3000
 NODE_ENV=development
 JWT_SECRET=your_jwt_signing_secret_here
 
-# Database Configurations
+# Database (PostgreSQL)
 DATABASE_URL=postgresql://postgres:password@localhost:5432/hackproof_db
 
 # GitHub API Credentials
@@ -60,10 +60,14 @@ GITHUB_PERSONAL_ACCESS_TOKEN=your_fallback_token_for_manual_ref_fetches
 # Gemini AI Platform (Server-Side Only)
 GEMINI_API_KEY=your_gemini_api_key_here
 
-# Blockchain Network Configuration
-BLOCKCHAIN_RPC_URL=https://rpc.mainnet-712.network
-BLOCKCHAIN_PRIVATE_KEY=your_secured_wallet_private_key_for_gas_fees
-SMART_CONTRACT_ADDRESS=0x74f2e4129bb882ca1a654921b777a888c3a9f02c
+# Blockchain Configuration
+BLOCKCHAIN_MODE=dummy              # "dummy" (DB-backed simulated chain), "real" (future RPC mode), or "off"
+BLOCKCHAIN_ENABLED=true
+BLOCKCHAIN_SIGNER_ADDRESS=0x70997970C51812dc3A010C7d01b50e0d17dc79C8  # Deterministic from-address for dummy mode
+BLOCKCHAIN_BLOCK_INTERVAL=10       # Transactions per block (dummy mode only)
+BLOCKCHAIN_RPC_URL=                # Ignored in dummy mode; used by real mode only
+BLOCKCHAIN_PRIVATE_KEY=            # Ignored in dummy mode; used by real mode only
+SMART_CONTRACT_ADDRESS=0x74f2e4129bb882ca1a654921b777a888c3a9f02c  # Used by real mode only
 ```
 
 ---
@@ -227,11 +231,16 @@ When judges observe a live presentation, the backend accepts a raw audio transcr
 
 ## 5. Blockchain Audit Trail Integration
 
-To ensure audit histories are completely immune to tampering, the backend anchors event data to an immutable ledger (e.g., L2 rollup/smart contract or a simplified high-speed local cryptographic chain).
+To ensure audit histories are completely immune to tampering, the backend anchors event data to a **DB-backed simulated chain** (Block + Transaction rows in PostgreSQL) that mimics block/tx semantics. This replaces the previous hash-only cryptographic approach.
 
-### Cryptographic Event Anchor Payload
+### Architecture
+- A `DummyBlockchainService` creates `Transaction` rows for each anchored commit.
+- Transactions are grouped into `Block` rows. A new block is minted automatically when the current block reaches `BLOCKCHAIN_BLOCK_INTERVAL` (default 10) transactions.
+- Blocks form a chain via `parentHash` pointers; each block's hash is computed from its parent hash + block number + timestamp.
+
+### Anchor Flow
 Whenever a commit webhook triggers:
-1. Construct the payload:
+1. Construct the anchor payload:
    ```typescript
    const payload = {
      commitHash: commit.hash,
@@ -241,17 +250,42 @@ Whenever a commit webhook triggers:
      riskScore: commit.riskScore
    };
    ```
-2. Call the smart contract `anchorCommit` function:
-   ```solidity
-   function anchorCommit(
-       string memory _commitHash, 
-       string memory _author, 
-       uint256 _timestamp, 
-       bytes32 _aiSummaryHash, 
-       uint8 _riskScore
-   ) public onlyOwner returns (bytes32 txHash)
-   ```
-3. Store the resulting transaction hash (`blockchainTx`) in the local database and mark `blockchainStatus: "verified"`.
+2. `DummyBlockchainService.anchorCommit(payload)`:
+   - Computes a deterministic `txHash` via SHA-256 of (contractAddress + commitHash + author + timestamp + aiSummaryHash + riskScore + signerAddress).
+   - Inserts a `Transaction` row with `status = 'verified'`, `fromAddress = BLOCKCHAIN_SIGNER_ADDRESS`, `toAddress = SMART_CONTRACT_ADDRESS`.
+   - Computes `eventHash = keccak256(payloadJson)` and persists it on the transaction row.
+   - Reuses the current block or creates a new `Block` row if the interval threshold is reached.
+   - Updates the parent `Commit` row with `blockchainTx`, `blockchainStatus`, `blockNumber`, and `eventHash`.
+3. Returns `{ blockchainTx, blockchainStatus, blockNumber, eventHash }`.
+
+### DB Schemas (Block + Transaction)
+
+**Block**
+| Field        | Type     | Description |
+|-------------|----------|-------------|
+| number      | Int (PK) | Sequential block number |
+| hash        | String   | SHA-256 of chain state |
+| parentHash  | String   | Previous block's hash |
+| timestamp   | DateTime | Block mint time |
+| minerAddress| String   | Always 0x0 in dummy mode |
+| gasUsed     | BigInt   | Cumulative gas in block |
+| txCount     | Int      | Number of transactions |
+
+**Transaction**
+| Field             | Type     | Description |
+|------------------|----------|-------------|
+| hash             | String (PK) | Deterministic tx hash |
+| blockNumber      | Int (FK) | Parent block number |
+| fromAddress      | String   | Signer address |
+| toAddress        | String   | Contract address |
+| nonce            | Int      | Tx index in block |
+| input            | Json     | Anchor payload |
+| status           | String   | verified / failed / pending |
+| gasUsed          | BigInt   | Always 21000 in dummy mode |
+| cumulativeGasUsed| BigInt   | Running gas total in block |
+| logIndex         | Int      | Event log index |
+| eventHash        | String?  | keccak256 of input JSON |
+| commitHash       | String?  | Linked commit hash |
 
 ---
 
@@ -374,7 +408,10 @@ All endpoints communicate via JSON. Unauthorized requests return standard `401 U
     "aiSummary": "Integrated Redis client caching structures.",
     "category": "backend",
     "riskScore": 12,
-    "blockchainTx": "0x5a18b9..f2c0021"
+    "blockchainTx": "0x5a18b9..f2c0021",
+    "blockchainStatus": "verified",
+    "blockNumber": 1,
+    "eventHash": "0x1234...abcd"
   }
   ```
 
@@ -487,6 +524,78 @@ When a commit gets flagged with high risk, hackers must quickly justify their ch
 
 ---
 
+### Group 5: Blockchain Explorer
+
+#### 1. List Blocks
+* **Endpoint**: `GET /api/blockchain/blocks`
+* **Query Parameters**:
+  * `limit` (number, default 20, max 100)
+  * `offset` (number, default 0)
+* **Success Response (`200 OK`)**:
+  ```json
+  {
+    "blocks": [
+      {
+        "number": 1,
+        "hash": "0xabc...",
+        "parentHash": "0x000...0",
+        "timestamp": "2026-07-18T10:00:00.000Z",
+        "minerAddress": "0x7099...79C8",
+        "gasUsed": "21000",
+        "txCount": 1,
+        "transactions": [
+          {
+            "hash": "0xdef...",
+            "fromAddress": "0x7099...79C8",
+            "toAddress": "0x74f2...f02c",
+            "status": "verified",
+            "eventHash": "0x123...",
+            "commitHash": "abc123"
+          }
+        ]
+      }
+    ],
+    "total": 42,
+    "limit": 20,
+    "offset": 0
+  }
+  ```
+
+#### 2. Get Transaction by Hash
+* **Endpoint**: `GET /api/blockchain/tx/:hash`
+* **Success Response (`200 OK`)**:
+  ```json
+  {
+    "hash": "0xdef...",
+    "blockNumber": 1,
+    "blockHash": "0xabc...",
+    "fromAddress": "0x7099...79C8",
+    "toAddress": "0x74f2...f02c",
+    "nonce": 0,
+    "input": { "contract": "...", "function": "anchorCommit", "args": {...} },
+    "status": "verified",
+    "gasUsed": "21000",
+    "cumulativeGasUsed": "21000",
+    "logIndex": 0,
+    "eventHash": "0x123...",
+    "commitHash": "abc123",
+    "createdAt": "2026-07-18T10:00:00.000Z"
+  }
+  ```
+
+#### 3. Find Transaction by Commit Hash
+* **Endpoint**: `GET /api/blockchain/tx/by-commit/:commitHash`
+* **Success Response (`200 OK`)**: Same shape as single tx lookup.
+
+#### 4. Get Blockchain Mode
+* **Endpoint**: `GET /api/blockchain/mode`
+* **Success Response (`200 OK`)**:
+  ```json
+  { "mode": "dummy", "configured": true }
+  ```
+
+---
+
 ## 7. Production-Ready Frontend fetch Clients
 
 These type-safe TypeScript methods are designed to be imported directly into the front-end application to cleanly replace mock database states with real server APIs.
@@ -560,7 +669,7 @@ export const CommitsAPI = {
       additions: number;
       deletions: number;
     };
-  }): Promise<{ status: string; commitHash: string; aiSummary: string; category: string; riskScore: number; blockchainTx: string }> {
+  }): Promise<{ status: string; commitHash: string; aiSummary: string; category: string; riskScore: number; blockchainTx: string; blockchainStatus: string; blockNumber?: number; eventHash?: string }> {
     const res = await fetch(`${API_BASE}/webhooks/github`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -614,7 +723,55 @@ export const DemoAuditAPI = {
 };
 
 /**
- * 4. Stats & Logging Clients
+ * 4. Blockchain Explorer Client
+ */
+export const BlockchainAPI = {
+  // List blocks
+  async getBlocks(limit = 20, offset = 0): Promise<{
+    blocks: {
+      number: number; hash: string; parentHash: string; timestamp: string;
+      minerAddress: string; gasUsed: string; txCount: number;
+      transactions: { hash: string; fromAddress: string; toAddress: string; status: string; eventHash?: string; commitHash?: string }[];
+    }[];
+    total: number; limit: number; offset: number;
+  }> {
+    const res = await fetch(`${API_BASE}/blockchain/blocks?limit=${limit}&offset=${offset}`);
+    return handleResponse(res);
+  },
+
+  // Get transaction by hash
+  async getTransaction(hash: string): Promise<{
+    hash: string; blockNumber: number; blockHash: string;
+    fromAddress: string; toAddress: string; nonce: number;
+    input: unknown; status: string; gasUsed: string;
+    cumulativeGasUsed: string; logIndex: number;
+    eventHash?: string; commitHash?: string; createdAt: string;
+  }> {
+    const res = await fetch(`${API_BASE}/blockchain/tx/${encodeURIComponent(hash)}`);
+    return handleResponse(res);
+  },
+
+  // Find transaction by commit hash
+  async getTransactionByCommit(commitHash: string): Promise<{
+    hash: string; blockNumber: number; blockHash: string;
+    fromAddress: string; toAddress: string; nonce: number;
+    input: unknown; status: string; gasUsed: string;
+    cumulativeGasUsed: string; logIndex: number;
+    eventHash?: string; commitHash?: string; createdAt: string;
+  }> {
+    const res = await fetch(`${API_BASE}/blockchain/tx/by-commit/${encodeURIComponent(commitHash)}`);
+    return handleResponse(res);
+  },
+
+  // Get blockchain mode
+  async getMode(): Promise<{ mode: string; configured: boolean }> {
+    const res = await fetch(`${API_BASE}/blockchain/mode`);
+    return handleResponse(res);
+  }
+};
+
+/**
+ * 5. Stats & Logging Clients
  */
 export const AnalyticsAPI = {
   // Fetch overall statistics

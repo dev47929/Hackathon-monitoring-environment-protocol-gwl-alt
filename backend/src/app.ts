@@ -10,6 +10,7 @@ import { teamsRouter } from './routes/teamsRouter.js';
 import { commitsRouter } from './routes/commitsRouter.js';
 import { demoRouter } from './routes/demoRouter.js';
 import { analyticsRouter } from './routes/analyticsRouter.js';
+import { blockchainRouter } from './routes/blockchainRouter.js';
 import { geminiService } from './services/geminiService.js';
 import { githubService } from './services/githubService.js';
 import { blockchainService } from './services/blockchainService.js';
@@ -50,6 +51,7 @@ app.get('/health', (_req, res) => {
       gemini: geminiService.isConfigured(),
       github: githubService.isConfigured(),
       blockchain: blockchainService.isConfigured(),
+      blockchainMode: blockchainService.mode(),
     },
   });
 });
@@ -58,6 +60,7 @@ app.use('/api/teams', optionalAuth, teamsRouter);
 app.use('/api', optionalAuth, commitsRouter);
 app.use('/api', optionalAuth, demoRouter);
 app.use('/api', optionalAuth, analyticsRouter);
+app.use('/api', optionalAuth, blockchainRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

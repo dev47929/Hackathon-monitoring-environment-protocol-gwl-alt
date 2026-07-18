@@ -55,6 +55,9 @@ export interface BlockchainConfig {
   privateKey: string;
   contractAddress: string;
   enabled: boolean;
+  blockchainMode: 'dummy' | 'real' | 'off';
+  signerAddress: string;
+  blockInterval: number;
 }
 
 export interface Config {
@@ -97,6 +100,9 @@ export const config: Config = {
     privateKey: env('BLOCKCHAIN_PRIVATE_KEY'),
     contractAddress: env('SMART_CONTRACT_ADDRESS', '0x74f2e4129bb882ca1a654921b777a888c3a9f02c'),
     enabled: envBool('BLOCKCHAIN_ENABLED', true),
+    blockchainMode: env('BLOCKCHAIN_MODE', 'dummy') as 'dummy' | 'real' | 'off',
+    signerAddress: env('BLOCKCHAIN_SIGNER_ADDRESS', '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'),
+    blockInterval: envNumber('BLOCKCHAIN_BLOCK_INTERVAL', 10),
   },
 };
 

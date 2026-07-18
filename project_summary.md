@@ -91,6 +91,6 @@ The Express gateway exposes several crucial endpoints under `/api`:
 
 * **Backend Gateway**: Node.js & TypeScript, Express, Zod (Validation), TSX & TSC.
 * **AI Engine**: Modern `@google/genai` TypeScript SDK referencing the Gemini 2.5 Flash and 2.5 Pro models.
-* **Blockchain Integrations**: Native cryptographic utility suite utilizing Keccak-256 and SHA-256 algorithms to generate signatures representing on-chain smart contract updates.
+* **Blockchain Integrations**: DB-backed simulated chain that mimics block/tx semantics with queryable REST endpoints for exploring the dummy ledger.
 * **Frontend Clients**: Modular, type-safe API clients in the `hackproof-ai` React application for seamless server-side integration.
 

@@ -1,12 +1,13 @@
-import { Router } from 'express';
-import * as repo from '../data/repository.js';
+import { Router } from 'express'
+import { asyncHandler } from '../utils/errors.js'
+import * as repo from '../data/repository.js'
 
-export const analyticsRouter: Router = Router();
+export const analyticsRouter: Router = Router()
 
-analyticsRouter.get('/stats', (_req, res) => {
-  res.json(repo.getStats());
-});
+analyticsRouter.get('/stats', asyncHandler(async (_req, res) => {
+  res.json(await repo.getStats())
+}))
 
-analyticsRouter.get('/activity-logs', (_req, res) => {
-  res.json(repo.getAllLogs());
-});
+analyticsRouter.get('/activity-logs', asyncHandler(async (_req, res) => {
+  res.json(await repo.getAllLogs())
+}))

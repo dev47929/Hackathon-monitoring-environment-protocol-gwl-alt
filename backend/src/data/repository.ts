@@ -1,114 +1,207 @@
-import type { Team, Commit, ActivityLog, HackathonStats, JustificationStatus } from '../types/index.js';
-import { seedTeams, seedActivityLogs, computeStats } from '../data/seed.js';
+import type { Team, Commit, ActivityLog, HackathonStats, JustificationStatus, ClaimedFeature, InterviewQuestion } from '../types/index.js'
+import { prisma } from './prisma.js'
 
-interface InternalState {
-  teams: Team[];
-  logs: ActivityLog[];
-}
-
-const state: InternalState = {
-  teams: seedTeams(),
-  logs: seedActivityLogs(),
-};
-
-export function getAllTeams(): Team[] {
-  return state.teams;
-}
-
-export function getTeamById(id: string): Team | undefined {
-  return state.teams.find((t) => t.id === id);
-}
-
-export function findTeamByRepoUrl(repoUrl: string): Team | undefined {
-  const normalized = repoUrl.replace(/\.git$/, '').replace(/\/$/, '').toLowerCase();
-  return state.teams.find((t) => t.repoUrl.toLowerCase().replace(/\.git$/, '').replace(/\/$/, '') === normalized);
-}
-
-export function addTeam(team: Team): void {
-  state.teams.push(team);
-}
-
-export function updateTeam(id: string, updates: Partial<Team>): Team {
-  const idx = state.teams.findIndex((t) => t.id === id);
-  if (idx === -1) throw new Error(`Team ${id} not found`);
-  state.teams[idx] = { ...state.teams[idx], ...updates };
-  return state.teams[idx];
-}
-
-export function addCommitToTeam(teamId: string, commit: Commit): void {
-  const idx = state.teams.findIndex((t) => t.id === teamId);
-  if (idx === -1) throw new Error(`Team ${teamId} not found`);
-  state.teams[idx].commits = [...state.teams[idx].commits, commit];
-}
-
-export function findCommitByHash(hash: string): { team: Team; commit: Commit } | undefined {
-  for (const team of state.teams) {
-    const commit = team.commits.find((c) => c.hash === hash);
-    if (commit) return { team, commit };
+function mapTeam(t: any): Team {
+  return {
+    id: t.id,
+    name: t.name,
+    repoUrl: t.repoUrl,
+    avatar: t.avatar,
+    techStack: t.techStack,
+    members: t.members,
+    progress: t.progress,
+    overallRiskScore: t.overallRiskScore,
+    description: t.description,
+    claimedFeatures: (t.claimedFeatures ?? []) as ClaimedFeature[],
+    interviewQuestions: (t.interviewQuestions ?? []) as InterviewQuestion[],
+    commits: (t.commits ?? []).map(mapCommit),
   }
-  return undefined;
 }
 
-export function updateCommit(hash: string, updates: Partial<Commit>): Commit | undefined {
-  for (const team of state.teams) {
-    const idx = team.commits.findIndex((c) => c.hash === hash);
-    if (idx !== -1) {
-      team.commits[idx] = { ...team.commits[idx], ...updates };
-      return team.commits[idx];
-    }
+function mapCommit(c: any): Commit {
+  return {
+    hash: c.hash,
+    timestamp: c.timestamp,
+    author: c.author,
+    message: c.message,
+    changedFiles: c.changedFiles,
+    additions: c.additions,
+    deletions: c.deletions,
+    aiSummary: c.aiSummary,
+    featureEvolution: c.featureEvolution,
+    category: c.category as Commit['category'],
+    blockchainTx: c.blockchainTx,
+    blockchainStatus: c.blockchainStatus as Commit['blockchainStatus'],
+    isSuspicious: c.isSuspicious || undefined,
+    suspiciousReason: c.suspiciousReason ?? undefined,
+    riskScore: c.riskScore,
+    justification: c.justification ?? undefined,
+    justificationStatus: c.justificationStatus as JustificationStatus,
+    teamId: c.teamId,
+    ...(c.blockNumber != null ? { blockNumber: c.blockNumber } : {}),
+    ...(c.eventHash ? { eventHash: c.eventHash } : {}),
   }
-  return undefined;
 }
 
-export function recomputeTeamRisk(teamId: string): number {
-  const idx = state.teams.findIndex((t) => t.id === teamId);
-  if (idx === -1) throw new Error(`Team ${teamId} not found`);
-  const commits = state.teams[idx].commits;
+const teamInclude = { commits: true }
+
+export async function getAllTeams(): Promise<Team[]> {
+  const rows = await prisma.team.findMany({ include: teamInclude, orderBy: { createdAt: 'asc' } })
+  return rows.map(mapTeam)
+}
+
+export async function getTeamById(id: string): Promise<Team | undefined> {
+  const row = await prisma.team.findUnique({ where: { id }, include: teamInclude })
+  return row ? mapTeam(row) : undefined
+}
+
+export async function findTeamByRepoUrl(repoUrl: string): Promise<Team | undefined> {
+  const normalized = repoUrl.replace(/\.git$/, '').replace(/\/$/, '').toLowerCase()
+  const all = await prisma.team.findMany({ include: teamInclude })
+  const row = all.find((t) => t.repoUrl.toLowerCase().replace(/\.git$/, '').replace(/\/$/, '') === normalized)
+  return row ? mapTeam(row) : undefined
+}
+
+export async function addTeam(team: Team): Promise<void> {
+  await prisma.team.create({
+    data: {
+      id: team.id,
+      name: team.name,
+      repoUrl: team.repoUrl,
+      avatar: team.avatar,
+      techStack: team.techStack,
+      members: team.members,
+      progress: team.progress,
+      overallRiskScore: team.overallRiskScore,
+      description: team.description,
+      claimedFeatures: team.claimedFeatures as any,
+      interviewQuestions: team.interviewQuestions as any,
+    },
+  })
+}
+
+export async function updateTeam(id: string, updates: Partial<Team>): Promise<Team> {
+  const data: any = { ...updates }
+  if (updates.claimedFeatures) data.claimedFeatures = updates.claimedFeatures as any
+  if (updates.interviewQuestions) data.interviewQuestions = updates.interviewQuestions as any
+  if (updates.commits) delete data.commits
+  const row = await prisma.team.update({ where: { id }, data, include: teamInclude })
+  return mapTeam(row)
+}
+
+export async function addCommitToTeam(teamId: string, commit: Commit): Promise<void> {
+  await prisma.commit.create({
+    data: {
+      hash: commit.hash,
+      teamId,
+      timestamp: commit.timestamp,
+      author: commit.author,
+      message: commit.message,
+      changedFiles: commit.changedFiles,
+      additions: commit.additions,
+      deletions: commit.deletions,
+      aiSummary: commit.aiSummary,
+      featureEvolution: commit.featureEvolution,
+      category: commit.category,
+      blockchainTx: commit.blockchainTx,
+      blockchainStatus: commit.blockchainStatus,
+      isSuspicious: commit.isSuspicious ?? false,
+      suspiciousReason: commit.suspiciousReason ?? null,
+      riskScore: commit.riskScore,
+      justification: commit.justification ?? null,
+      justificationStatus: commit.justificationStatus,
+      blockNumber: (commit as any).blockNumber ?? null,
+      eventHash: (commit as any).eventHash ?? null,
+    },
+  })
+}
+
+export async function findCommitByHash(hash: string): Promise<{ team: Team; commit: Commit } | undefined> {
+  const commitRow = await prisma.commit.findUnique({
+    where: { hash },
+    include: { team: { include: teamInclude } },
+  })
+  if (!commitRow) return undefined
+  return { team: mapTeam(commitRow.team), commit: mapCommit(commitRow) }
+}
+
+export async function updateCommit(hash: string, updates: Partial<Commit>): Promise<Commit | undefined> {
+  const data: any = { ...updates }
+  if (updates.isSuspicious !== undefined) data.isSuspicious = updates.isSuspicious
+  if (updates.suspiciousReason !== undefined) data.suspiciousReason = updates.suspiciousReason ?? null
+  if (updates.justification !== undefined) data.justification = updates.justification ?? null
+  try {
+    const row = await prisma.commit.update({ where: { hash }, data })
+    return mapCommit(row)
+  } catch {
+    return undefined
+  }
+}
+
+export async function recomputeTeamRisk(teamId: string): Promise<number> {
+  const commits = await prisma.commit.findMany({ where: { teamId } })
   if (commits.length === 0) {
-    state.teams[idx].overallRiskScore = 0;
-    return 0;
+    await prisma.team.update({ where: { id: teamId }, data: { overallRiskScore: 0 } })
+    return 0
   }
-
-  let weightedSum = 0;
+  let weightedSum = 0
   for (const c of commits) {
-    let weight = 1;
-    if (c.justificationStatus === 'accepted') weight = 0.4;
-    if (c.justificationStatus === 'rejected') weight = 1.5;
-    weightedSum += c.riskScore * weight;
+    let weight = 1
+    if (c.justificationStatus === 'accepted') weight = 0.4
+    if (c.justificationStatus === 'rejected') weight = 1.5
+    weightedSum += c.riskScore * weight
   }
-  const avg = weightedSum / commits.length;
-  const score = Math.max(0, Math.min(100, Math.round(avg)));
-  state.teams[idx].overallRiskScore = score;
-  return score;
+  const avg = weightedSum / commits.length
+  const score = Math.max(0, Math.min(100, Math.round(avg)))
+  await prisma.team.update({ where: { id: teamId }, data: { overallRiskScore: score } })
+  return score
 }
 
-export function setJustification(hash: string, justification: string): Commit | undefined {
-  const commit = updateCommit(hash, {
+export async function setJustification(hash: string, justification: string): Promise<Commit | undefined> {
+  return updateCommit(hash, {
     justification,
     justificationStatus: 'pending' satisfies JustificationStatus,
-  });
-  return commit;
+  })
 }
 
-export function setJustificationReview(hash: string, status: 'accepted' | 'rejected'): { commit?: Commit; teamId?: string } {
-  const result = findCommitByHash(hash);
-  const commit = updateCommit(hash, { justificationStatus: status });
-  return { commit, teamId: result?.team.id };
+export async function setJustificationReview(hash: string, status: 'accepted' | 'rejected'): Promise<{ commit?: Commit; teamId?: string }> {
+  const result = await findCommitByHash(hash)
+  const commit = await updateCommit(hash, { justificationStatus: status })
+  return { commit, teamId: result?.team.id }
 }
 
-export function getAllLogs(): ActivityLog[] {
-  return [...state.logs].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+export async function getAllLogs(): Promise<ActivityLog[]> {
+  const rows = await prisma.activityLog.findMany({ orderBy: { timestamp: 'desc' } })
+  return rows.map((r) => ({
+    id: r.id,
+    timestamp: r.timestamp,
+    type: r.type as ActivityLog['type'],
+    message: r.message,
+    teamName: r.teamName,
+    refId: r.refId ?? undefined,
+  }))
 }
 
-export function addLog(log: ActivityLog): void {
-  state.logs.push(log);
+export async function addLog(log: ActivityLog): Promise<void> {
+  await prisma.activityLog.create({ data: log as any })
 }
 
-export function getStats(): HackathonStats {
-  return computeStats(state.teams);
+export async function getStats(): Promise<HackathonStats> {
+  const teams = await prisma.team.findMany({ include: { commits: true } })
+  const totalTeams = teams.length
+  const totalCommits = teams.reduce((sum, t) => sum + t.commits.length, 0)
+  const averageCommits = totalTeams === 0 ? 0 : Math.round((totalCommits / totalTeams) * 10) / 10
+  const activeAlerts = teams.reduce(
+    (sum, t) => sum + t.commits.filter((c) => c.isSuspicious && c.justificationStatus !== 'accepted').length,
+    0,
+  )
+  return { totalTeams, totalCommits, averageCommits, activeAlerts }
 }
 
-export function resetState(): void {
-  state.teams = seedTeams();
-  state.logs = seedActivityLogs();
+export async function resetState(): Promise<void> {
+  await prisma.transaction.deleteMany()
+  await prisma.block.deleteMany()
+  await prisma.commit.deleteMany()
+  await prisma.activityLog.deleteMany()
+  await prisma.team.deleteMany()
 }

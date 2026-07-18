@@ -1,0 +1,86 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Team {
+  id                 String    @id
+  name               String
+  repoUrl            String    @unique
+  avatar             String    @default("")
+  techStack          String[]
+  members            String[]
+  progress           Int       @default(0)
+  overallRiskScore   Int       @default(0)
+  description        String    @default("")
+  claimedFeatures    Json      @default("[]")
+  interviewQuestions Json      @default("[]")
+  commits            Commit[]
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+model Commit {
+  hash                String        @id
+  teamId              String
+  team                Team          @relation(fields: [teamId], references: [id])
+  timestamp           String
+  author              String
+  message             String
+  changedFiles        String[]
+  additions           Int           @default(0)
+  deletions           Int           @default(0)
+  aiSummary           String        @default("")
+  featureEvolution    String        @default("")
+  category            String        @default("other")
+  blockchainTx        String        @default("")
+  blockchainStatus    String        @default("pending")
+  isSuspicious        Boolean       @default(false)
+  suspiciousReason    String?
+  riskScore           Int           @default(0)
+  justification       String?
+  justificationStatus String        @default("none")
+  blockNumber         Int?
+  eventHash           String?
+  createdAt           DateTime      @default(now())
+}
+
+model ActivityLog {
+  id        String   @id
+  timestamp String
+  type      String
+  message   String
+  teamName  String
+  refId     String?
+}
+
+model Block {
+  number       Int           @id
+  hash         String        @unique
+  parentHash   String
+  timestamp    DateTime      @default(now())
+  minerAddress String        @default("0x0000000000000000000000000000000000000000")
+  gasUsed      BigInt        @default(0)
+  txCount      Int           @default(0)
+  transactions Transaction[]
+}
+
+model Transaction {
+  hash              String   @id
+  blockNumber       Int
+  block             Block    @relation(fields: [blockNumber], references: [number])
+  fromAddress       String
+  toAddress         String
+  nonce             Int      @default(0)
+  input             Json
+  status            String   @default("pending")
+  gasUsed           BigInt   @default(0)
+  cumulativeGasUsed BigInt   @default(0)
+  logIndex          Int      @default(0)
+  eventHash         String?
+  commitHash        String?
+  createdAt         DateTime @default(now())
+}
