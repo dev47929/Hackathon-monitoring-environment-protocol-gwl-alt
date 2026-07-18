@@ -79,6 +79,14 @@ export interface ActivityLog {
   refId?: string;
 }
 
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: 'organizer' | 'judge';
+  createdAt: string;
+}
+
 export interface AuthenticatedUser {
   email: string;
   name: string;

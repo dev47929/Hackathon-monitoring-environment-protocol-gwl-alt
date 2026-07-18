@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Team, HackathonStats, ActivityLog } from '../types';
+import { TeamsAPI } from '../services/api';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Users, BarChart2, GitCommit, ShieldAlert, Plus, Layers, 
@@ -28,73 +29,82 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
   const [activeTab, setActiveTab] = useState<'analytics' | 'register' | 'logs'>('analytics');
 
   // Register Team Submit handler
-  const handleRegisterTeamSubmit = (e: React.FormEvent) => {
+  const handleRegisterTeamSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTeamName.trim() || !newTeamUrl.trim()) return;
 
     setIsRegistering(true);
+    const techStack = newTeamStack.split(',').map(t => t.trim()).filter(Boolean);
 
-    setTimeout(() => {
-      const id = `team-${Date.now()}`;
-      const techStack = newTeamStack.split(',').map(t => t.trim()).filter(Boolean);
-      const members = [newTeamLead ? `${newTeamLead} (Lead)` : 'Anonymous Hacker (Lead)'];
-
-      const newTeam: Team = {
-        id,
+    try {
+      const response = await TeamsAPI.register({
         name: newTeamName,
         repoUrl: newTeamUrl,
         avatar: newTeamAvatar,
         techStack,
-        members,
-        progress: 10,
-        overallRiskScore: 0,
+        members: [newTeamLead ? `${newTeamLead} (Lead)` : 'Anonymous Hacker (Lead)'],
         description: newTeamDesc || 'A newly registered hackathon project awaiting first git commit push webhook logs.',
-        commits: [
-          {
-            hash: 'init001',
-            timestamp: new Date().toISOString(),
-            author: newTeamLead || 'Lead Developer',
-            message: 'Initialize repository layout and basic readme documentation',
-            changedFiles: ['README.md', '.gitignore'],
-            additions: 15,
-            deletions: 0,
-            aiSummary: 'Initialized new repo layout. Formulated description logs and basic rules file.',
-            featureEvolution: 'Initial project schema.',
-            category: 'docs',
-            blockchainTx: '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join(''),
-            blockchainStatus: 'verified',
-            riskScore: 2,
-            justificationStatus: 'none'
-          }
-        ],
-        claimedFeatures: [
-          { id: `cl-${id}-1`, claim: 'Core MVP Architecture', expectedEvidence: 'Config files and entry scripts', actualCodeReference: 'README.md', status: 'verified' }
-        ],
-        interviewQuestions: [
-          { id: `iq-${id}-1`, question: 'What is the core problem solved by your proposed architecture?', context: 'Initial repository registry.', suggestedAnswer: 'This project is in initial phase, focus is on core usability foundations.' }
-        ]
-      };
-
-      onRegisterTeam(newTeam);
-
-      // Add log
-      onAddActivityLog({
-        id: `log-${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        type: 'success',
-        message: `HACKATHON REGISTRY: New team "${newTeamName}" registered repo ${newTeamUrl} successfully. Webhooks established.`,
-        teamName: newTeamName
       });
 
-      // Reset
-      setNewTeamName('');
-      setNewTeamUrl('');
-      setNewTeamStack('React, Tailwind, Node.js');
-      setNewTeamDesc('');
-      setNewTeamLead('');
-      setIsRegistering(false);
-      setActiveTab('analytics');
-    }, 1200);
+      const minimalTeam: Team = {
+        id: response.data.id,
+        name: response.data.name,
+        repoUrl: newTeamUrl,
+        avatar: newTeamAvatar,
+        techStack,
+        members: [newTeamLead ? `${newTeamLead} (Lead)` : 'Anonymous Hacker (Lead)'],
+        progress: response.data.progress,
+        overallRiskScore: 0,
+        description: newTeamDesc || '',
+        commits: [],
+        claimedFeatures: [],
+        interviewQuestions: [],
+      };
+
+      onRegisterTeam(minimalTeam);
+    } catch (err) {
+      console.warn('Register API failed, using local fallback:', err);
+      const id = `team-${Date.now()}`;
+      const members = [newTeamLead ? `${newTeamLead} (Lead)` : 'Anonymous Hacker (Lead)'];
+
+      const newTeam: Team = {
+        id, name: newTeamName, repoUrl: newTeamUrl, avatar: newTeamAvatar,
+        techStack, members, progress: 10, overallRiskScore: 0,
+        description: newTeamDesc || 'A newly registered hackathon project.',
+        commits: [{
+          hash: 'init001', timestamp: new Date().toISOString(),
+          author: newTeamLead || 'Lead Developer',
+          message: 'Initialize repository layout and basic readme documentation',
+          changedFiles: ['README.md', '.gitignore'],
+          additions: 15, deletions: 0,
+          aiSummary: 'Initialized new repo layout.',
+          featureEvolution: 'Initial project schema.',
+          category: 'docs' as const,
+          blockchainTx: '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join(''),
+          blockchainStatus: 'verified' as const,
+          riskScore: 2, justificationStatus: 'none' as const,
+        }],
+        claimedFeatures: [{ id: `cl-${id}-1`, claim: 'Core MVP Architecture', expectedEvidence: 'Config files', actualCodeReference: 'README.md', status: 'verified' as const }],
+        interviewQuestions: [{ id: `iq-${id}-1`, question: 'What is the core problem solved?', context: 'Initial registry.', suggestedAnswer: 'Focus on core usability foundations.' }],
+      };
+      onRegisterTeam(newTeam);
+    }
+
+    onAddActivityLog({
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      type: 'success',
+      message: `HACKATHON REGISTRY: New team "${newTeamName}" registered repo ${newTeamUrl} successfully. Webhooks established.`,
+      teamName: newTeamName,
+    });
+
+    setNewTeamName('');
+    setNewTeamUrl('');
+    setNewTeamStack('React, Tailwind, Node.js');
+    setNewTeamDesc('');
+    setNewTeamLead('');
+    setIsRegistering(false);
+    setActiveTab('analytics');
   };
 
   // Compile Tech Stack Popularity counts

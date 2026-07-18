@@ -11,6 +11,7 @@ import { commitsRouter } from './routes/commitsRouter.js';
 import { demoRouter } from './routes/demoRouter.js';
 import { analyticsRouter } from './routes/analyticsRouter.js';
 import { blockchainRouter } from './routes/blockchainRouter.js';
+import { authRouter } from './routes/authRouter.js';
 import { geminiService } from './services/geminiService.js';
 import { githubService } from './services/githubService.js';
 import { blockchainService } from './services/blockchainService.js';
@@ -56,6 +57,7 @@ app.get('/health', (_req, res) => {
   });
 });
 
+app.use('/api/auth', authRouter);
 app.use('/api/teams', optionalAuth, teamsRouter);
 app.use('/api', optionalAuth, commitsRouter);
 app.use('/api', optionalAuth, demoRouter);

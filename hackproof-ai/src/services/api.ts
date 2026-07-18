@@ -1,6 +1,6 @@
-import { Team, Commit, HackathonStats, ActivityLog } from '../types';
+import { Team, Commit, HackathonStats, ActivityLog, BlocksResponse, TransactionDetail, BlockchainMode } from '../types';
 
-const API_BASE = ''; // Proxy handles the base URL redirection to backend
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
 
 /**
  * Global API Error handler
@@ -31,7 +31,7 @@ export const TeamsAPI = {
     techStack: string[];
     members: string[];
     description: string;
-  }): Promise<{ status: string; message: string; data: Team }> {
+  }): Promise<{ status: string; message: string; data: { id: string; name: string; progress: number; commitsCount: number } }> {
     const res = await fetch(`${API_BASE}/api/teams`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -41,13 +41,13 @@ export const TeamsAPI = {
   },
 
   // Update a team's attributes
-  async update(id: string, updates: Partial<Team>): Promise<Team> {
+  async update(id: string, updates: Partial<Team>): Promise<{ status: string; data: Record<string, unknown> }> {
     const res = await fetch(`${API_BASE}/api/teams/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates)
     });
-    return handleResponse<Team>(res);
+    return handleResponse<{ status: string; data: Record<string, unknown> }>(res);
   }
 };
 
@@ -75,6 +75,9 @@ export const CommitsAPI = {
     category: string;
     riskScore: number;
     blockchainTx: string;
+    blockchainStatus: string;
+    blockNumber?: number;
+    eventHash?: string;
     isSuspicious: boolean;
     suspiciousReason?: string;
     teamName: string;
@@ -146,5 +149,34 @@ export const AnalyticsAPI = {
   async getActivityLogs(): Promise<ActivityLog[]> {
     const res = await fetch(`${API_BASE}/api/activity-logs`);
     return handleResponse<ActivityLog[]>(res);
+  }
+};
+
+/**
+ * 5. Blockchain Explorer Client
+ */
+export const BlockchainAPI = {
+  // List simulated blockchain blocks
+  async getBlocks(limit = 20, offset = 0): Promise<BlocksResponse> {
+    const res = await fetch(`${API_BASE}/api/blockchain/blocks?limit=${limit}&offset=${offset}`);
+    return handleResponse<BlocksResponse>(res);
+  },
+
+  // Get transaction by its blockchain tx hash
+  async getTransaction(hash: string): Promise<TransactionDetail> {
+    const res = await fetch(`${API_BASE}/api/blockchain/tx/${encodeURIComponent(hash)}`);
+    return handleResponse<TransactionDetail>(res);
+  },
+
+  // Find transaction by associated commit hash
+  async getTransactionByCommit(commitHash: string): Promise<TransactionDetail> {
+    const res = await fetch(`${API_BASE}/api/blockchain/tx/by-commit/${encodeURIComponent(commitHash)}`);
+    return handleResponse<TransactionDetail>(res);
+  },
+
+  // Get blockchain anchoring mode
+  async getMode(): Promise<BlockchainMode> {
+    const res = await fetch(`${API_BASE}/api/blockchain/mode`);
+    return handleResponse<BlockchainMode>(res);
   }
 };

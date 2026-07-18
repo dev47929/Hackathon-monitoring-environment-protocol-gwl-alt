@@ -11,11 +11,14 @@ export interface Commit {
   category: 'frontend' | 'backend' | 'blockchain' | 'database' | 'ai' | 'docs' | 'other';
   blockchainTx: string;
   blockchainStatus: 'verified' | 'failed' | 'pending';
+  blockNumber?: number;
+  eventHash?: string;
   isSuspicious?: boolean;
   suspiciousReason?: string;
   riskScore: number; // 0 to 100
   justification?: string; // Team explanation for flagged commit
   justificationStatus: 'none' | 'pending' | 'accepted' | 'rejected';
+  teamId?: string;
 }
 
 export interface Team {
@@ -65,5 +68,54 @@ export interface AuthenticatedUser {
   name: string;
   role: 'team' | 'judge' | 'organizer';
   teamId?: string; // Present if role is 'team'
+}
+
+export interface BlockTransaction {
+  hash: string;
+  fromAddress: string;
+  toAddress: string;
+  status: string;
+  eventHash?: string;
+  commitHash?: string;
+}
+
+export interface Block {
+  number: number;
+  hash: string;
+  parentHash: string;
+  timestamp: string;
+  minerAddress: string;
+  gasUsed: string;
+  txCount: number;
+  transactions: BlockTransaction[];
+}
+
+export interface BlocksResponse {
+  blocks: Block[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface TransactionDetail {
+  hash: string;
+  blockNumber: number;
+  blockHash: string;
+  fromAddress: string;
+  toAddress: string;
+  nonce: number;
+  input: unknown;
+  status: string;
+  gasUsed: string;
+  cumulativeGasUsed: string;
+  logIndex: number;
+  eventHash?: string;
+  commitHash?: string;
+  createdAt: string;
+}
+
+export interface BlockchainMode {
+  mode: string;
+  configured: boolean;
 }
 

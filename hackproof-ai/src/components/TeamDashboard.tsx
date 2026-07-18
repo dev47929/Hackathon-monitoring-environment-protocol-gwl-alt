@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Team, Commit, ActivityLog } from '../types';
+import { CommitsAPI } from '../services/api';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   GitBranch, GitCommit, GitPullRequest, Code, Plus, 
@@ -32,48 +33,77 @@ export default function TeamDashboard({ teams, selectedTeamId, onUpdateTeam, onA
   // Tab selection
   const [activeTab, setActiveTab] = useState<'timeline' | 'alerts' | 'intel' | 'push'>('timeline');
 
-  // Trigger simulated push
-  const handleSimulatePush = (e: React.FormEvent) => {
+  // Trigger simulated push via backend
+  const handleSimulatePush = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!commitMessage.trim()) return;
 
     setSimulatePushing(true);
+    const additionsNum = parseInt(commitAdditions) || 50;
+    const deletionsNum = parseInt(commitDeletions) || 5;
+    const files = changedFilesText.split(',').map(f => f.trim()).filter(Boolean);
+    const hash = Math.random().toString(16).substring(2, 9);
 
-    setTimeout(() => {
-      const hash = Math.random().toString(16).substring(2, 9);
+    try {
+      const response = await CommitsAPI.simulateWebhook({
+        repoUrl: currentTeam.repoUrl,
+        commit: {
+          hash,
+          author: commitAuthor,
+          message: commitMessage,
+          changedFiles: files.length > 0 ? files : ['src/App.tsx'],
+          additions: additionsNum,
+          deletions: deletionsNum,
+        },
+      });
+
+      const newCommit: Commit = {
+        hash: response.commitHash,
+        timestamp: new Date().toISOString(),
+        author: commitAuthor,
+        message: commitMessage,
+        changedFiles: files.length > 0 ? files : ['src/App.tsx'],
+        additions: additionsNum,
+        deletions: deletionsNum,
+        aiSummary: response.aiSummary,
+        featureEvolution: response.category,
+        category: response.category as Commit['category'],
+        blockchainTx: response.blockchainTx,
+        blockchainStatus: response.blockchainStatus as Commit['blockchainStatus'],
+        blockNumber: response.blockNumber,
+        eventHash: response.eventHash,
+        isSuspicious: response.isSuspicious,
+        suspiciousReason: response.suspiciousReason,
+        riskScore: response.riskScore,
+        justificationStatus: response.isSuspicious ? 'pending' : 'none',
+      };
+
+      const updatedCommits = [newCommit, ...currentTeam.commits];
+      const updatedTeam: Team = {
+        ...currentTeam,
+        commits: updatedCommits,
+        overallRiskScore: response.overallRiskScore,
+        progress: Math.min(100, currentTeam.progress + 2),
+      };
+
+      onUpdateTeam(updatedTeam);
+      onAddActivityLog({
+        id: `log-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        type: response.isSuspicious ? 'danger' : 'success',
+        message: response.isSuspicious
+          ? `WARNING: SUSPICIOUS ACTIVITY flagged for ${currentTeam.name} on commit ${response.commitHash}: ${response.suspiciousReason}`
+          : `Commit ${response.commitHash} securely certified on-chain for ${currentTeam.name} by ${commitAuthor}.`,
+        teamName: currentTeam.name,
+        refId: response.commitHash,
+      });
+    } catch (err) {
+      console.warn('Webhook API failed, using local fallback:', err);
       const txHash = '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-      const additionsNum = parseInt(commitAdditions) || 50;
-      const deletionsNum = parseInt(commitDeletions) || 5;
-      const files = changedFilesText.split(',').map(f => f.trim()).filter(Boolean);
-
-      // Simple AI model logic
-      let aiSummary = `Automated analysis for commit ${hash}: `;
-      let featureEvolution = '';
       let isSuspicious = false;
       let suspiciousReason = '';
-      let riskScore = Math.floor(Math.random() * 15) + 5; // Low risk baseline
+      let riskScore = Math.floor(Math.random() * 15) + 5;
 
-      if (commitCategory === 'frontend') {
-        aiSummary += `Created high-fidelity frontend layouts. Updated component structure and tweaked Tailwind layout properties inside [${files.join(', ')}].`;
-        featureEvolution = `Refined user interface layout and improved CSS responsiveness parameters.`;
-      } else if (commitCategory === 'backend') {
-        aiSummary += `Authored Express middleware router configurations inside [${files.join(', ')}]. Added basic request verification logic.`;
-        featureEvolution = `Established modular server route handling files.`;
-      } else if (commitCategory === 'blockchain') {
-        aiSummary += `Created contract bindings. Dispatched smart contract updates, referencing solidity structs inside [${files.join(', ')}].`;
-        featureEvolution = `Updated state variables inside decentralised storage contract components.`;
-      } else if (commitCategory === 'database') {
-        aiSummary += `Integrated schema changes. Mapped pool configs, initialized client indexes inside [${files.join(', ')}].`;
-        featureEvolution = `Altered local cache collection records structure.`;
-      } else if (commitCategory === 'ai') {
-        aiSummary += `Created prompt matrices to invoke Gemini model models. Established system-level parameters inside [${files.join(', ')}].`;
-        featureEvolution = `Injected fine-tuned AI context guidelines.`;
-      } else {
-        aiSummary += `Modified docs, logs, or workspace files: [${files.join(', ')}].`;
-        featureEvolution = `Maintained config profiles.`;
-      }
-
-      // Suspicious triggers
       if (additionsNum > 4000) {
         isSuspicious = true;
         suspiciousReason = 'Massive code upload detected (>4,000 additions in a single commit block). Potential pre-made code import.';
@@ -92,88 +122,67 @@ export default function TeamDashboard({ teams, selectedTeamId, onUpdateTeam, onA
         changedFiles: files.length > 0 ? files : ['src/App.tsx'],
         additions: additionsNum,
         deletions: deletionsNum,
-        aiSummary,
-        featureEvolution,
+        aiSummary: `Automated analysis for commit ${hash}: Modified workspace files.`,
+        featureEvolution: 'Maintained config profiles.',
         category: commitCategory,
         blockchainTx: txHash,
-        blockchainStatus: isSuspicious && messageIncludesForce(commitMessage) ? 'failed' : 'verified',
+        blockchainStatus: isSuspicious && (commitMessage.toLowerCase().includes('force push') || commitMessage.toLowerCase().includes('force-push')) ? 'failed' as const : 'verified' as const,
         isSuspicious,
         suspiciousReason: isSuspicious ? suspiciousReason : undefined,
         riskScore,
-        justificationStatus: isSuspicious ? 'pending' : 'none'
+        justificationStatus: isSuspicious ? 'pending' : 'none',
       };
 
-      // Update team in parent state
       const updatedCommits = [newCommit, ...currentTeam.commits];
       const flaggedCount = updatedCommits.filter(c => c.isSuspicious).length;
       const newOverallRisk = Math.min(100, Math.floor(flaggedCount * 28 + (currentTeam.overallRiskScore * 0.4)));
-
-      const updatedTeam: Team = {
-        ...currentTeam,
-        commits: updatedCommits,
-        overallRiskScore: newOverallRisk,
-        progress: Math.min(100, currentTeam.progress + 2)
-      };
-
+      const updatedTeam: Team = { ...currentTeam, commits: updatedCommits, overallRiskScore: newOverallRisk, progress: Math.min(100, currentTeam.progress + 2) };
       onUpdateTeam(updatedTeam);
-
-      // Push activity log
       onAddActivityLog({
         id: `log-${Date.now()}`,
         timestamp: new Date().toISOString(),
         type: isSuspicious ? 'danger' : 'success',
-        message: isSuspicious 
+        message: isSuspicious
           ? `WARNING: SUSPICIOUS ACTIVITY flagged for ${currentTeam.name} on commit ${hash}: ${suspiciousReason}`
           : `Commit ${hash} securely certified on-chain for ${currentTeam.name} by ${commitAuthor}.`,
         teamName: currentTeam.name,
-        refId: hash
+        refId: hash,
       });
+    }
 
-      // Reset form
-      setCommitMessage('');
-      setSimulatePushing(false);
-      setActiveTab('timeline');
-    }, 1500);
+    setCommitMessage('');
+    setSimulatePushing(false);
+    setActiveTab('timeline');
   };
 
-  const messageIncludesForce = (msg: string) => {
-    return msg.toLowerCase().includes('force push') || msg.toLowerCase().includes('force-push');
-  };
-
-  const handleSubmitJustification = (commitHash: string) => {
+  const handleSubmitJustification = async (commitHash: string) => {
     const text = justificationTexts[commitHash];
     if (!text || !text.trim()) return;
 
+    try {
+      await CommitsAPI.submitJustification(commitHash, text);
+    } catch (err) {
+      console.warn('Justification API failed, using local fallback:', err);
+    }
+
     const updatedCommits = currentTeam.commits.map(c => {
       if (c.hash === commitHash) {
-        return {
-          ...c,
-          justification: text,
-          justificationStatus: 'pending' as const
-        };
+        return { ...c, justification: text, justificationStatus: 'pending' as const };
       }
       return c;
     });
 
-    onUpdateTeam({
-      ...currentTeam,
-      commits: updatedCommits
-    });
-
+    onUpdateTeam({ ...currentTeam, commits: updatedCommits });
     onAddActivityLog({
       id: `log-${Date.now()}`,
       timestamp: new Date().toISOString(),
       type: 'info',
       message: `Team ${currentTeam.name} submitted a formal justification for commit ${commitHash}.`,
       teamName: currentTeam.name,
-      refId: commitHash
+      refId: commitHash,
     });
 
-    // Clear buffer
-    setJustificationTexts({
-      ...justificationTexts,
-      [commitHash]: ''
-    });
+    setJustificationTexts({ ...justificationTexts, [commitHash]: '' });
   };
 
   const flaggedCommits = currentTeam.commits.filter(c => c.isSuspicious);

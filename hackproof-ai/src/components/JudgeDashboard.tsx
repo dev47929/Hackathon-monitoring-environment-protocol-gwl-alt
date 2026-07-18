@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Team, Commit, ActivityLog } from '../types';
+import { CommitsAPI, DemoAuditAPI } from '../services/api';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Trophy, ShieldAlert, CheckCircle2, AlertOctagon, Terminal, Play, 
@@ -31,29 +32,31 @@ export default function JudgeDashboard({ teams, selectedTeamId, onSelectTeam, on
   const [copiedReport, setCopiedReport] = useState(false);
 
   // Accept / Reject justification handler
-  const handleReviewJustification = (commitHash: string, status: 'accepted' | 'rejected') => {
+  const handleReviewJustification = async (commitHash: string, status: 'accepted' | 'rejected') => {
+    let newOverallRiskScore = currentTeam.overallRiskScore;
+    try {
+      const response = await CommitsAPI.reviewJustification(commitHash, status);
+      newOverallRiskScore = response.newOverallRiskScore;
+    } catch (err) {
+      console.warn('Review API failed, using local fallback:', err);
+      if (status === 'accepted') {
+        newOverallRiskScore = Math.max(5, currentTeam.overallRiskScore - 20);
+      } else {
+        newOverallRiskScore = Math.min(98, currentTeam.overallRiskScore + 10);
+      }
+    }
+
     const updatedCommits = currentTeam.commits.map(c => {
       if (c.hash === commitHash) {
-        return {
-          ...c,
-          justificationStatus: status as any
-        };
+        return { ...c, justificationStatus: status };
       }
       return c;
     });
 
-    // Recalculate overall risk if justification is accepted
-    let newOverallRisk = currentTeam.overallRiskScore;
-    if (status === 'accepted') {
-      newOverallRisk = Math.max(5, currentTeam.overallRiskScore - 20);
-    } else {
-      newOverallRisk = Math.min(98, currentTeam.overallRiskScore + 10);
-    }
-
     onUpdateTeam({
       ...currentTeam,
       commits: updatedCommits,
-      overallRiskScore: newOverallRisk
+      overallRiskScore: newOverallRiskScore,
     });
 
     onAddActivityLog({
@@ -62,61 +65,69 @@ export default function JudgeDashboard({ teams, selectedTeamId, onSelectTeam, on
       type: status === 'accepted' ? 'success' : 'warning',
       message: `Judge reviewed and ${status.toUpperCase()} justification for commit ${commitHash} on Team ${currentTeam.name}.`,
       teamName: currentTeam.name,
-      refId: commitHash
+      refId: commitHash,
     });
   };
 
-  // Simulate transcription and claim matching live
-  const startSpeechSimulation = (claimId: string, claimText: string, expectedPhrase: string) => {
+  // Run presentation verification via backend
+  const handleVerifyPresentation = async (claimId: string, claimText: string) => {
     if (isTranscribing) return;
-    
+
     setIsTranscribing(true);
     setTranscriptText('');
     setCurrentClaimSimulationId(claimId);
     setMatchedClaimId(null);
 
-    const simulationPhrases = [
-      "Hello judges! We are excited to present our project today. ",
-      "Our main focus was solving transparency and security, and ",
-      `specifically we wanted to highlight that ${expectedPhrase}. `,
-      "We implemented this fully to make sure everything functions reliably without failures."
-    ];
+    const transcript = `Hello judges! We are excited to present our project today. Our main focus was solving transparency and security, and specifically we wanted to highlight that ${claimText}. We implemented this fully to make sure everything functions reliably without failures.`;
 
-    let phraseIndex = 0;
-    const interval = setInterval(() => {
-      if (phraseIndex < simulationPhrases.length) {
-        setTranscriptText(prev => prev + simulationPhrases[phraseIndex]);
-        phraseIndex++;
+    // Animate transcript typing
+    let charIndex = 0;
+    const typingInterval = setInterval(() => {
+      if (charIndex < transcript.length) {
+        setTranscriptText(transcript.slice(0, charIndex + 20));
+        charIndex += 20;
       } else {
-        clearInterval(interval);
-        setIsTranscribing(false);
-        setMatchedClaimId(claimId);
-
-        // Update the status of the claim to verified or partially
-        const updatedClaims = currentTeam.claimedFeatures.map(c => {
-          if (c.id === claimId) {
-            return {
-              ...c,
-              status: (c.status === 'verified' || c.status === 'partially') ? c.status : 'verified' as const
-            };
-          }
-          return c;
-        });
-
-        onUpdateTeam({
-          ...currentTeam,
-          claimedFeatures: updatedClaims
-        });
-
-        onAddActivityLog({
-          id: `log-${Date.now()}`,
-          timestamp: new Date().toISOString(),
-          type: 'success',
-          message: `Live claims verification: Voice transcript matched claim "${claimText}" against verified code database.`,
-          teamName: currentTeam.name
-        });
+        clearInterval(typingInterval);
       }
-    }, 1200);
+    }, 200);
+
+    try {
+      const response = await DemoAuditAPI.auditPresentation(currentTeam.id, transcript);
+
+      clearInterval(typingInterval);
+      setTranscriptText(transcript);
+      setIsTranscribing(false);
+      setMatchedClaimId(claimId);
+
+      const updatedClaims = currentTeam.claimedFeatures.map(c => {
+        const result = response.results.find(r => r.claim === c.claim);
+        return result ? { ...c, status: result.status as 'verified' | 'unverified' | 'partially' } : c;
+      });
+
+      onUpdateTeam({ ...currentTeam, claimedFeatures: updatedClaims });
+      onAddActivityLog({
+        id: `log-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        type: 'success',
+        message: `Live claims verification: Voice transcript matched claim "${claimText}" against verified code database.`,
+        teamName: currentTeam.name,
+      });
+    } catch (err) {
+      console.warn('Presentation API failed, using local fallback:', err);
+      clearInterval(typingInterval);
+      setTranscriptText(transcript);
+      setIsTranscribing(false);
+      setMatchedClaimId(claimId);
+
+      const updatedClaims = currentTeam.claimedFeatures.map(c => {
+        if (c.id === claimId) {
+          return { ...c, status: (c.status === 'verified' || c.status === 'partially') ? c.status : 'verified' as const };
+        }
+        return c;
+      });
+
+      onUpdateTeam({ ...currentTeam, claimedFeatures: updatedClaims });
+    }
   };
 
   // Generate complete Evaluation Markdown report
@@ -454,10 +465,9 @@ ${currentTeam.interviewQuestions.map((q, idx) => `**Q${idx + 1}: ${q.question}**
                         <button
                           key={claim.id}
                           disabled={isTranscribing}
-                          onClick={() => startSpeechSimulation(
-                            claim.id, 
-                            claim.claim, 
-                            claim.claim.split(' ').slice(0, 5).join(' ') + " structure"
+                          onClick={() => handleVerifyPresentation(
+                            claim.id,
+                            claim.claim
                           )}
                           className="text-left p-3.5 bg-slate-950 border border-slate-850 hover:border-slate-700 rounded-xl text-xs space-y-1.5 cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
                         >

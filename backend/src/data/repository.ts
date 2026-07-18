@@ -1,4 +1,4 @@
-import type { Team, Commit, ActivityLog, HackathonStats, JustificationStatus, ClaimedFeature, InterviewQuestion } from '../types/index.js'
+import type { Team, Commit, ActivityLog, HackathonStats, JustificationStatus, ClaimedFeature, InterviewQuestion, User } from '../types/index.js'
 import { prisma } from './prisma.js'
 
 function mapTeam(t: any): Team {
@@ -198,10 +198,33 @@ export async function getStats(): Promise<HackathonStats> {
   return { totalTeams, totalCommits, averageCommits, activeAlerts }
 }
 
+export async function createUser(data: {
+  id: string;
+  email: string;
+  name: string;
+  password: string;
+  role: 'organizer' | 'judge';
+}): Promise<User> {
+  const row = await prisma.user.create({ data })
+  return {
+    id: row.id,
+    email: row.email,
+    name: row.name,
+    role: row.role as User['role'],
+    createdAt: row.createdAt.toISOString(),
+  }
+}
+
+export async function findUserByEmail(email: string): Promise<{ id: string; email: string; name: string; password: string; role: string; createdAt: Date } | undefined> {
+  const row = await prisma.user.findUnique({ where: { email } })
+  return row ?? undefined
+}
+
 export async function resetState(): Promise<void> {
   await prisma.transaction.deleteMany()
   await prisma.block.deleteMany()
   await prisma.commit.deleteMany()
   await prisma.activityLog.deleteMany()
   await prisma.team.deleteMany()
+  await prisma.user.deleteMany()
 }
