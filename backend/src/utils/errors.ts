@@ -20,6 +20,10 @@ export function unauthorized(message: string = 'Unauthorized'): HttpError {
   return new HttpError(401, message);
 }
 
+export function forbidden(message: string = 'Forbidden'): HttpError {
+  return new HttpError(403, message);
+}
+
 export function notFound(message: string = 'Not Found'): HttpError {
   return new HttpError(404, message);
 }

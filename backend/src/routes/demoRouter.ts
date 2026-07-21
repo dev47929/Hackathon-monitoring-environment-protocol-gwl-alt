@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { asyncHandler, badRequest, notFound } from '../utils/errors.js';
+import { requireAuth, requireRole } from '../middleware/auth.js';
 import * as repo from '../data/repository.js';
 import { geminiService } from '../services/geminiService.js';
 import type { PresentationResult } from '../types/index.js';
@@ -11,7 +12,7 @@ const presentationSchema = z.object({
   transcript: z.string().min(10).max(20000),
 });
 
-demoRouter.post('/teams/:id/verify-presentation', asyncHandler(async (req, res) => {
+demoRouter.post('/teams/:id/verify-presentation', requireAuth, requireRole(['judge', 'organizer']), asyncHandler(async (req, res) => {
   const team = await repo.getTeamById(req.params.id);
   if (!team) throw notFound('Team not found.');
 

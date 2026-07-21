@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
 import { asyncHandler, badRequest, notFound } from '../utils/errors.js'
+import { optionalAuth, requireAuth, requireRole } from '../middleware/auth.js'
 import * as repo from '../data/repository.js'
 import { config } from '../config/index.js'
 import { GitHubService, githubService } from '../services/githubService.js'
@@ -19,7 +20,7 @@ async function resolveTeam(input: NormalizedWebhookInput): Promise<Team | null> 
   return (await repo.findTeamByRepoUrl(input.repoUrl)) ?? null
 }
 
-commitsRouter.post('/webhooks/github', asyncHandler(async (req, res) => {
+commitsRouter.post('/webhooks/github', optionalAuth, asyncHandler(async (req, res) => {
   const rawBody = req.rawBody
   if (rawBody && config.github.webhookSecret) {
     const ok = GitHubService.verifyWebhookSignature(rawBody, req.get('X-Hub-Signature-256'), config.github.webhookSecret)
@@ -63,7 +64,7 @@ const justificationSchema = z.object({
   justification: z.string().min(5).max(5000),
 })
 
-commitsRouter.post('/:hash/justification', asyncHandler(async (req, res) => {
+commitsRouter.post('/:hash/justification', requireAuth, requireRole(['team']), asyncHandler(async (req, res) => {
   const parsed = justificationSchema.safeParse({ justification: req.body?.justification })
   if (!parsed.success) {
     throw badRequest('Invalid justification payload.', parsed.error.flatten())
@@ -98,7 +99,7 @@ const reviewSchema = z.object({
   status: z.enum(['accepted', 'rejected']),
 })
 
-commitsRouter.patch('/:hash/review', asyncHandler(async (req, res) => {
+commitsRouter.patch('/:hash/review', requireAuth, requireRole(['judge']), asyncHandler(async (req, res) => {
   const parsed = reviewSchema.safeParse({ status: req.body?.status })
   if (!parsed.success) {
     throw badRequest('Invalid review payload. status must be "accepted" or "rejected".', parsed.error.flatten())

@@ -203,7 +203,7 @@ export async function createUser(data: {
   email: string;
   name: string;
   password: string;
-  role: 'organizer' | 'judge';
+  role: 'team' | 'organizer' | 'judge';
 }): Promise<User> {
   const row = await prisma.user.create({ data })
   return {

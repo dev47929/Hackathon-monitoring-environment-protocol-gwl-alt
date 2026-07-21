@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
 import type { Response } from 'express'
 import { asyncHandler, badRequest, notFound } from '../utils/errors.js'
+import { optionalAuth, requireAuth, requireRole } from '../middleware/auth.js'
 import * as repo from '../data/repository.js'
 import { GitHubService } from '../services/githubService.js'
 import { bootstrapTeamFromGithub, buildClaimedFeatures, generateAndStoreInterviewQuestion } from '../services/auditPipeline.js'
@@ -45,17 +46,17 @@ const patchSchema = z
   })
   .strict()
 
-teamsRouter.get('/', asyncHandler(async (_req, res) => {
+teamsRouter.get('/', optionalAuth, asyncHandler(async (_req, res) => {
   res.json(await repo.getAllTeams())
 }))
 
-teamsRouter.get('/:id', asyncHandler(async (req, res) => {
+teamsRouter.get('/:id', optionalAuth, asyncHandler(async (req, res) => {
   const team = await repo.getTeamById(req.params.id)
   if (!team) return notFoundResponse(res)
   return res.json(team)
 }))
 
-teamsRouter.post('/', asyncHandler(async (req, res) => {
+teamsRouter.post('/', requireAuth, requireRole(['team', 'organizer']), asyncHandler(async (req, res) => {
   const parsed = registerSchema.safeParse(req.body)
   if (!parsed.success) {
     throw badRequest('Invalid team payload.', parsed.error.flatten())
@@ -121,7 +122,7 @@ teamsRouter.post('/', asyncHandler(async (req, res) => {
   })
 }))
 
-teamsRouter.patch('/:id', asyncHandler(async (req, res) => {
+teamsRouter.patch('/:id', requireAuth, requireRole(['organizer']), asyncHandler(async (req, res) => {
   const team = await repo.getTeamById(req.params.id)
   if (!team) throw notFound('Team not found.')
 
@@ -134,7 +135,7 @@ teamsRouter.patch('/:id', asyncHandler(async (req, res) => {
   res.json({ status: 'success', data: { id: updated.id, ...updates } })
 }))
 
-teamsRouter.post('/:id/send-report', asyncHandler(async (req, res) => {
+teamsRouter.post('/:id/send-report', requireAuth, requireRole(['judge', 'organizer']), asyncHandler(async (req, res) => {
   const team = await repo.getTeamById(req.params.id)
   if (!team) throw notFound('Team not found.')
 

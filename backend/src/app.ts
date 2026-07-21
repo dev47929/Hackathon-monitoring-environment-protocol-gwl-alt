@@ -5,7 +5,6 @@ import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import { config } from './config/index.js';
 import { errorHandler, notFoundHandler } from './utils/errors.js';
-import { optionalAuth } from './middleware/auth.js';
 import { teamsRouter } from './routes/teamsRouter.js';
 import { commitsRouter } from './routes/commitsRouter.js';
 import { demoRouter } from './routes/demoRouter.js';
@@ -58,11 +57,11 @@ app.get('/health', (_req, res) => {
 });
 
 app.use('/api/auth', authRouter);
-app.use('/api/teams', optionalAuth, teamsRouter);
-app.use('/api', optionalAuth, commitsRouter);
-app.use('/api', optionalAuth, demoRouter);
-app.use('/api', optionalAuth, analyticsRouter);
-app.use('/api', optionalAuth, blockchainRouter);
+app.use('/api/teams', teamsRouter);
+app.use('/api', commitsRouter);
+app.use('/api', demoRouter);
+app.use('/api', analyticsRouter);
+app.use('/api', blockchainRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

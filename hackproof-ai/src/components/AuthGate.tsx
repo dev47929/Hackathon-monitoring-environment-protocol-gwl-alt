@@ -4,6 +4,7 @@ import {
   ShieldCheck, Lock, Mail, User, Key, KeyRound, 
   CheckCircle, Eye, EyeOff, UserPlus, ArrowRight, Zap, RefreshCw
 } from 'lucide-react';
+import { AuthAPI, setStoredToken } from '../services/api';
 import { Team, AuthenticatedUser } from '../types';
 
 interface AuthGateProps {
@@ -13,6 +14,15 @@ interface AuthGateProps {
   initialRole?: 'team' | 'judge' | 'organizer';
 }
 
+function decodeTokenPayload(token: string): { userId: string; role: string } | null {
+  try {
+    const payload = token.split('.')[1];
+    return JSON.parse(atob(payload));
+  } catch {
+    return null;
+  }
+}
+
 export default function AuthGate({ teams, onLogin, onCancel, initialRole = 'team' }: AuthGateProps) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [role, setRole] = useState<'team' | 'judge' | 'organizer'>(initialRole);
@@ -20,45 +30,40 @@ export default function AuthGate({ teams, onLogin, onCancel, initialRole = 'team
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [selectedTeamId, setSelectedTeamId] = useState(teams[0]?.id || 'team-1');
-  const [newTeamName, setNewTeamName] = useState('');
   
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Quick Demo Logins
-  const DEMO_ACCOUNTS = [
-    { name: 'Alex Dev', email: 'alex@neuralnexus.ai', role: 'team' as const, teamId: 'team-1', label: 'Hacker (NeuralNexus)' },
-    { name: 'Sarah Codes', email: 'sarah@defiguard.ai', role: 'team' as const, teamId: 'team-2', label: 'Hacker (DeFiGuard)' },
-    { name: 'Dr. Elizabeth', email: 'judge.elizabeth@hackproof.ai', role: 'judge' as const, label: 'Lead Hackathon Judge' },
-    { name: 'Admin Host', email: 'admin@hackproof.ai', role: 'organizer' as const, label: 'System Organizer' }
-  ];
-
-  const handleQuickLogin = (demo: typeof DEMO_ACCOUNTS[0]) => {
+  const handleQuickLogin = async (demo: { email: string; name: string; role: 'team' | 'judge' | 'organizer'; teamId?: string; label: string }) => {
     setIsLoading(true);
     setError('');
-    
-    setTimeout(() => {
-      setIsLoading(false);
+    setSuccess('');
+
+    try {
+      const res = await AuthAPI.login(demo.email, 'password123');
+      const token = res.data.token;
+      setStoredToken(token);
+
+      const decoded = decodeTokenPayload(token);
       const authenticatedUser: AuthenticatedUser = {
         email: demo.email,
         name: demo.name,
-        role: demo.role,
-        teamId: demo.role === 'team' ? demo.teamId : undefined
+        role: decoded?.role as AuthenticatedUser['role'] || demo.role,
+        teamId: demo.role === 'team' ? demo.teamId : undefined,
       };
-      
-      // Store session
-      localStorage.setItem('hackproof_user', JSON.stringify(authenticatedUser));
-      
+
       setSuccess(`Authenticated as ${demo.name}!`);
-      setTimeout(() => {
-        onLogin(authenticatedUser);
-      }, 800);
-    }, 600);
+      setTimeout(() => onLogin(authenticatedUser), 800);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Login failed.';
+      setError(message);
+      setIsLoading(false);
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
@@ -75,28 +80,55 @@ export default function AuthGate({ teams, onLogin, onCancel, initialRole = 'team
 
     setIsLoading(true);
 
-    // Simulate cryptographic authorization check & JWT issue
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      let token: string;
+      let userRole: string;
+      let userName: string;
 
-      const computedTeamId = role === 'team' ? selectedTeamId : undefined;
+      if (isSignUp) {
+        const res = await AuthAPI.register({
+          email: email.toLowerCase(),
+          name,
+          password,
+          role,
+        });
+        token = res.data.token;
+        userRole = res.data.user.role;
+        userName = res.data.user.name;
+      } else {
+        const res = await AuthAPI.login(email.toLowerCase(), password);
+        token = res.data.token;
+        userRole = res.data.user.role;
+        userName = res.data.user.name;
+      }
+
+      setStoredToken(token);
+
+      const decoded = decodeTokenPayload(token);
+      const actualRole = (decoded?.role || userRole) as AuthenticatedUser['role'];
+
       const authenticatedUser: AuthenticatedUser = {
         email: email.toLowerCase(),
-        name: isSignUp ? name : (name || email.split('@')[0]),
-        role: role,
-        teamId: computedTeamId
+        name: userName,
+        role: actualRole,
+        teamId: role === 'team' ? selectedTeamId : undefined,
       };
 
-      // Store in LocalStorage
-      localStorage.setItem('hackproof_user', JSON.stringify(authenticatedUser));
-      
-      setSuccess(isSignUp ? 'Secured Key-Pair Issued! Redirecting...' : 'Credential Auth Hash Verified!');
-      
-      setTimeout(() => {
-        onLogin(authenticatedUser);
-      }, 1000);
-    }, 1200);
+      setSuccess(isSignUp ? 'Registration successful! Redirecting...' : 'Authentication successful!');
+      setTimeout(() => onLogin(authenticatedUser), 800);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Authentication failed.';
+      setError(message);
+      setIsLoading(false);
+    }
   };
+
+  const DEMO_ACCOUNTS = [
+    { name: 'Alex Dev', email: 'alex@neuralnexus.ai', role: 'team' as const, teamId: 'team-1', label: 'Hacker (NeuralNexus)' },
+    { name: 'Sarah Codes', email: 'sarah@defiguard.ai', role: 'team' as const, teamId: 'team-2', label: 'Hacker (DeFiGuard)' },
+    { name: 'Dr. Elizabeth', email: 'judge.elizabeth@hackproof.ai', role: 'judge' as const, label: 'Lead Hackathon Judge' },
+    { name: 'Admin Host', email: 'admin@hackproof.ai', role: 'organizer' as const, label: 'System Organizer' }
+  ];
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-8" id="auth-gate-container">
@@ -222,7 +254,7 @@ export default function AuthGate({ teams, onLogin, onCancel, initialRole = 'team
                       ))}
                     </select>
                     <p className="text-[10px] text-slate-500 italic font-mono pl-1">
-                      Joining this team gives you immediate push-webhook webhook credentials.
+                      Joining this team gives you immediate push-webhook credentials.
                     </p>
                   </motion.div>
                 )}
@@ -326,7 +358,7 @@ export default function AuthGate({ teams, onLogin, onCancel, initialRole = 'team
                 {isLoading ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    Computing Credentials...
+                    Authenticating...
                   </>
                 ) : isSignUp ? (
                   <>
@@ -343,10 +375,23 @@ export default function AuthGate({ teams, onLogin, onCancel, initialRole = 'team
             </form>
           </div>
 
+          <div className="mt-6 pt-4 border-t border-slate-850/50">
+            <div className="flex flex-wrap gap-2">
+              {DEMO_ACCOUNTS.map((demo) => (
+                <button
+                  key={demo.email}
+                  onClick={() => handleQuickLogin(demo)}
+                  disabled={isLoading}
+                  className="flex-1 min-w-[120px] p-2 bg-slate-950/60 border border-slate-850/60 rounded-lg hover:bg-slate-900/80 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <div className="text-[10px] font-mono text-indigo-400 font-bold">{demo.name}</div>
+                  <div className="text-[8px] font-mono text-slate-500">{demo.label}</div>
+                </button>
+              ))}
+            </div>
+          </div>
 
         </div>
-
-
 
       </div>
     </div>

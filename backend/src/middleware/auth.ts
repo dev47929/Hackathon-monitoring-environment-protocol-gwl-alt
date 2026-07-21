@@ -1,38 +1,47 @@
 import type { Request, Response, NextFunction } from 'express';
-import { unauthorized } from '../utils/errors.js';
-import { config } from '../config/index.js';
-import type { AuthenticatedUser } from '../types/index.js';
-
-const TOKEN_PREFIX = 'Bearer ';
-const SESSIONS = '_hackproof_session_token_';
+import jwt from 'jsonwebtoken';
+import { unauthorized, forbidden } from '../utils/errors.js';
 
 declare module 'express-serve-static-core' {
   interface Request {
-    user?: AuthenticatedUser;
+    user?: { userId: string; role: string };
     rawBody?: Buffer;
   }
 }
 
-export function authMiddleware(req: Request, _res: Response, next: NextFunction): void {
+const TOKEN_PREFIX = 'Bearer ';
+
+function decodeToken(req: Request): { userId: string; role: string } | null {
   const header = req.headers.authorization;
-  if (!header || !header.startsWith(TOKEN_PREFIX)) {
-    return next(unauthorized('Missing or malformed Authorization header.'));
-  }
+  if (!header || !header.startsWith(TOKEN_PREFIX)) return null;
   const token = header.slice(TOKEN_PREFIX.length).trim();
-  if (token !== config.server.jwtSecret && token !== SESSIONS) {
-    return next(unauthorized('Invalid API token.'));
+  if (!token) return null;
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string; role: string };
+    return payload;
+  } catch {
+    return null;
   }
-  req.user = { email: 'builtin@hackproof.ai', name: 'Admin', role: 'organizer' };
-  next();
 }
 
 export function optionalAuth(req: Request, _res: Response, next: NextFunction): void {
-  const header = req.headers.authorization;
-  if (header && header.startsWith(TOKEN_PREFIX)) {
-    const token = header.slice(TOKEN_PREFIX.length).trim();
-    if (token === config.server.jwtSecret || token === SESSIONS) {
-      req.user = { email: 'builtin@hackproof.ai', name: 'Admin', role: 'organizer' };
-    }
-  }
+  const payload = decodeToken(req);
+  if (payload) req.user = payload;
   next();
+}
+
+export function requireAuth(req: Request, _res: Response, next: NextFunction): void {
+  const payload = decodeToken(req);
+  if (!payload) return next(unauthorized('Authentication required.'));
+  req.user = payload;
+  next();
+}
+
+export function requireRole(roles: string[]) {
+  return (req: Request, _res: Response, next: NextFunction): void => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return next(forbidden('Insufficient permissions.'));
+    }
+    next();
+  };
 }

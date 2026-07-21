@@ -2,28 +2,74 @@ import { Team, Commit, HackathonStats, ActivityLog, BlocksResponse, TransactionD
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
 
+const TOKEN_KEY = 'hackproof_token';
+
+const FALLBACK_EVENT = 'api:fallback';
+
+export function onApiFallback(callback: (endpoint: string) => void): () => void {
+  const handler = (e: CustomEvent<string>) => callback(e.detail);
+  window.addEventListener(FALLBACK_EVENT, handler as EventListener);
+  return () => window.removeEventListener(FALLBACK_EVENT, handler as EventListener);
+}
+
+function dispatchFallback(endpoint: string): void {
+  window.dispatchEvent(new CustomEvent(FALLBACK_EVENT, { detail: endpoint }));
+}
+
+export function getStoredToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setStoredToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function clearStoredToken(): void {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+function authHeaders(): Record<string, string> {
+  const token = getStoredToken();
+  if (token) return { 'Authorization': `Bearer ${token}` };
+  return {};
+}
+
 /**
  * Global API Error handler
  */
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const errorMsg = await response.text();
-    throw new Error(errorMsg || `HTTP error! Status: ${response.status}`);
+    const errorBody = await response.text();
+    let message: string;
+    try {
+      const parsed = JSON.parse(errorBody);
+      message = parsed.message || errorBody;
+    } catch {
+      message = errorBody || `HTTP error! Status: ${response.status}`;
+    }
+    throw new Error(message);
   }
   return response.json() as Promise<T>;
+}
+
+async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
+  try {
+    const res = await fetch(url, { ...options, headers: { ...authHeaders(), ...options?.headers } });
+    return await handleResponse<T>(res);
+  } catch (err) {
+    dispatchFallback(url);
+    throw err;
+  }
 }
 
 /**
  * 1. Hackathon Teams Client
  */
 export const TeamsAPI = {
-  // Fetch all active teams
   async getAll(): Promise<Team[]> {
-    const res = await fetch(`${API_BASE}/api/teams`);
-    return handleResponse<Team[]>(res);
+    return apiFetch<Team[]>(`${API_BASE}/api/teams`);
   },
 
-  // Register a new team and sync repo
   async register(payload: {
     name: string;
     repoUrl: string;
@@ -32,32 +78,27 @@ export const TeamsAPI = {
     members: string[];
     description: string;
   }): Promise<{ status: string; message: string; data: { id: string; name: string; progress: number; commitsCount: number } }> {
-    const res = await fetch(`${API_BASE}/api/teams`, {
+    return apiFetch(`${API_BASE}/api/teams`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    return handleResponse(res);
   },
 
-  // Update a team's attributes
   async update(id: string, updates: Partial<Team>): Promise<{ status: string; data: Record<string, unknown> }> {
-    const res = await fetch(`${API_BASE}/api/teams/${id}`, {
+    return apiFetch(`${API_BASE}/api/teams/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates)
     });
-    return handleResponse<{ status: string; data: Record<string, unknown> }>(res);
   },
 
-  // Send report via email webhook
   async sendReport(id: string, email: string, reportText: string): Promise<{ status: string; message: string }> {
-    const res = await fetch(`${API_BASE}/api/teams/${id}/send-report`, {
+    return apiFetch(`${API_BASE}/api/teams/${id}/send-report`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, reportText })
     });
-    return handleResponse<{ status: string; message: string }>(res);
   }
 };
 
@@ -65,7 +106,6 @@ export const TeamsAPI = {
  * 2. Webhook & Justification Client
  */
 export const CommitsAPI = {
-  // Simulate pushing a new commit webhook
   async simulateWebhook(payload: {
     repoUrl: string;
     commit: {
@@ -93,32 +133,27 @@ export const CommitsAPI = {
     teamName: string;
     overallRiskScore: number;
   }> {
-    const res = await fetch(`${API_BASE}/api/webhooks/github`, {
+    return apiFetch(`${API_BASE}/api/webhooks/github`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    return handleResponse(res);
   },
 
-  // Submit hacker explanation for flagged commit
   async submitJustification(hash: string, justification: string): Promise<{ status: string; message: string }> {
-    const res = await fetch(`${API_BASE}/api/${hash}/justification`, {
+    return apiFetch(`${API_BASE}/api/${hash}/justification`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ justification })
     });
-    return handleResponse(res);
   },
 
-  // Accept or reject a hacker justification (Judges only)
   async reviewJustification(hash: string, status: 'accepted' | 'rejected'): Promise<{ status: string; hash: string; newOverallRiskScore: number }> {
-    const res = await fetch(`${API_BASE}/api/${hash}/review`, {
+    return apiFetch(`${API_BASE}/api/${hash}/review`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status })
     });
-    return handleResponse(res);
   }
 };
 
@@ -126,7 +161,6 @@ export const CommitsAPI = {
  * 3. Live Presentation Auditor Client
  */
 export const DemoAuditAPI = {
-  // Submit presentation notes / transcript for claim cross-referencing
   async auditPresentation(teamId: string, transcript: string): Promise<{
     status: string;
     results: {
@@ -136,12 +170,11 @@ export const DemoAuditAPI = {
       confidence: number;
     }[];
   }> {
-    const res = await fetch(`${API_BASE}/api/teams/${teamId}/verify-presentation`, {
+    return apiFetch(`${API_BASE}/api/teams/${teamId}/verify-presentation`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ transcript })
     });
-    return handleResponse(res);
   }
 };
 
@@ -149,16 +182,12 @@ export const DemoAuditAPI = {
  * 4. Stats & Logging Clients
  */
 export const AnalyticsAPI = {
-  // Fetch overall statistics
   async getStats(): Promise<HackathonStats> {
-    const res = await fetch(`${API_BASE}/api/stats`);
-    return handleResponse<HackathonStats>(res);
+    return apiFetch<HackathonStats>(`${API_BASE}/api/stats`);
   },
 
-  // Fetch log history
   async getActivityLogs(): Promise<ActivityLog[]> {
-    const res = await fetch(`${API_BASE}/api/activity-logs`);
-    return handleResponse<ActivityLog[]>(res);
+    return apiFetch<ActivityLog[]>(`${API_BASE}/api/activity-logs`);
   }
 };
 
@@ -166,27 +195,45 @@ export const AnalyticsAPI = {
  * 5. Blockchain Explorer Client
  */
 export const BlockchainAPI = {
-  // List simulated blockchain blocks
   async getBlocks(limit = 20, offset = 0): Promise<BlocksResponse> {
-    const res = await fetch(`${API_BASE}/api/blockchain/blocks?limit=${limit}&offset=${offset}`);
-    return handleResponse<BlocksResponse>(res);
+    return apiFetch<BlocksResponse>(`${API_BASE}/api/blockchain/blocks?limit=${limit}&offset=${offset}`);
   },
 
-  // Get transaction by its blockchain tx hash
   async getTransaction(hash: string): Promise<TransactionDetail> {
-    const res = await fetch(`${API_BASE}/api/blockchain/tx/${encodeURIComponent(hash)}`);
-    return handleResponse<TransactionDetail>(res);
+    return apiFetch<TransactionDetail>(`${API_BASE}/api/blockchain/tx/${encodeURIComponent(hash)}`);
   },
 
-  // Find transaction by associated commit hash
   async getTransactionByCommit(commitHash: string): Promise<TransactionDetail> {
-    const res = await fetch(`${API_BASE}/api/blockchain/tx/by-commit/${encodeURIComponent(commitHash)}`);
-    return handleResponse<TransactionDetail>(res);
+    return apiFetch<TransactionDetail>(`${API_BASE}/api/blockchain/tx/by-commit/${encodeURIComponent(commitHash)}`);
   },
 
-  // Get blockchain anchoring mode
   async getMode(): Promise<BlockchainMode> {
-    const res = await fetch(`${API_BASE}/api/blockchain/mode`);
-    return handleResponse<BlockchainMode>(res);
+    return apiFetch<BlockchainMode>(`${API_BASE}/api/blockchain/mode`);
   }
+};
+
+/**
+ * 6. Authentication Client
+ */
+export const AuthAPI = {
+  async register(data: {
+    email: string;
+    name: string;
+    password: string;
+    role: 'team' | 'organizer' | 'judge';
+  }): Promise<{ status: string; message: string; data: { user: { id: string; email: string; name: string; role: string; createdAt: string }; token: string } }> {
+    return apiFetch(`${API_BASE}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  },
+
+  async login(email: string, password: string): Promise<{ status: string; data: { user: { id: string; email: string; name: string; role: string; createdAt: string; password?: string }; token: string } }> {
+    return apiFetch(`${API_BASE}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+  },
 };
