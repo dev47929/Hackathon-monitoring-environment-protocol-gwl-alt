@@ -132,24 +132,15 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
             className="flex-1 w-full max-w-xl lg:max-w-none"
           >
             <div className="relative rounded-2xl overflow-hidden border border-slate-800 shadow-2xl shadow-black/50 bg-slate-950 aspect-video">
-              {/* Window chrome */}
-              <div className="absolute top-0 left-0 right-0 h-8 bg-slate-900 border-b border-slate-800 flex items-center px-3 gap-1.5 z-10">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-500/70" />
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500/70" />
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/70" />
-                <span className="flex-1 mx-3 h-4 bg-slate-800 rounded-md" />
-              </div>
+              <video
+                className="absolute inset-0 w-full h-full object-cover"
+                src="/make_a_video_with_zoom_in_zoom.webm"
+                autoPlay
+                loop
+                muted
+                playsInline
+              />
 
-              {/* Placeholder content — swap with <video> when ready */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center pt-8 select-none">
-                <div className="w-16 h-16 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-4">
-                  <svg className="w-7 h-7 text-indigo-400 ml-1" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                </div>
-                <p className="text-xs font-mono text-slate-500 tracking-wider">DEMO VIDEO</p>
-                <p className="text-[10px] text-slate-600 mt-1">Video will be placed here</p>
-              </div>
 
               {/* Subtle grid overlay */}
               <div

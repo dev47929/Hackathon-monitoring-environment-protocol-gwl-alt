@@ -188,7 +188,7 @@ export default function App() {
                 <h1 className="text-base font-extrabold text-white tracking-tight flex items-center gap-1 leading-none uppercase">
                   HackProof <span className="text-indigo-400">AI</span>
                 </h1>
-                <span className="text-[10px] font-mono text-zinc-500 tracking-wider">IMMUTABLE AUDIT DEPLOYED</span>
+
               </div>
             </button>
           </div>
