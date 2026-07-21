@@ -44,6 +44,12 @@ async function handleResponse<T>(response: Response): Promise<T> {
     try {
       const parsed = JSON.parse(errorBody);
       message = parsed.message || errorBody;
+      if (parsed.details?.fieldErrors) {
+        const fields = Object.entries(parsed.details.fieldErrors)
+          .map(([field, errors]) => `${field}: ${(errors as string[]).join(', ')}`)
+          .join('; ');
+        if (fields) message += ` (${fields})`;
+      }
     } catch {
       message = errorBody || `HTTP error! Status: ${response.status}`;
     }

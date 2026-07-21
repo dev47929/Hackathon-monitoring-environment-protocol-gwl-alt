@@ -52,6 +52,11 @@ export default function AuthGate({ teams, onLogin, onCancel, initialRole = 'team
       return;
     }
 
+    if (isSignUp && password.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
