@@ -37,21 +37,25 @@ export default function JudgeDashboard({ teams, selectedTeamId, onSelectTeam, on
 
   // Helper to extract email or fall back to default
   const getLeaderEmail = (team: Team) => {
+    if (!team || !team.members) return '';
     const leaderMember = team.members.find(m => /leader/i.test(m)) || team.members[0] || '';
     const emailMatch = leaderMember.match(/[\w.-]+@[\w.-]+\.\w+/);
     if (emailMatch) return emailMatch[0];
-    const cleanTeamName = team.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const cleanTeamName = team.name ? team.name.toLowerCase().replace(/[^a-z0-9]/g, '') : 'team';
     return `${cleanTeamName}-leader@gmail.com`;
   };
 
   useEffect(() => {
-    setCustomReport(generateMarkdownReport());
-    setLeaderEmail(getLeaderEmail(currentTeam));
-    setSendStatus('idle');
+    if (currentTeam) {
+      setCustomReport(generateMarkdownReport());
+      setLeaderEmail(getLeaderEmail(currentTeam));
+      setSendStatus('idle');
+    }
   }, [selectedTeamId]);
 
   // Accept / Reject justification handler
   const handleReviewJustification = async (commitHash: string, status: 'accepted' | 'rejected') => {
+    if (!currentTeam) return;
     let newOverallRiskScore = currentTeam.overallRiskScore;
     try {
       const response = await CommitsAPI.reviewJustification(commitHash, status);
@@ -151,6 +155,7 @@ export default function JudgeDashboard({ teams, selectedTeamId, onSelectTeam, on
 
   // Generate complete Evaluation Markdown report
   function generateMarkdownReport() {
+    if (!currentTeam) return '';
     const verifiedClaims = currentTeam.claimedFeatures.filter(c => c.status === 'verified').length;
     const totalClaims = currentTeam.claimedFeatures.length;
     const cleanCommits = currentTeam.commits.filter(c => !c.isSuspicious).length;
@@ -215,6 +220,21 @@ ${currentTeam.interviewQuestions.map((q, idx) => `**Q${idx + 1}: ${q.question}**
       setSendStatus('error');
     }
   };
+  if (!currentTeam) {
+    return (
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center space-y-6 max-w-xl mx-auto my-12" id="empty-judge-view">
+        <div className="w-16 h-16 rounded-full bg-slate-900 flex items-center justify-center text-slate-500 mx-auto border border-slate-850">
+          <Trophy className="w-8 h-8 text-emerald-400" />
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-xl font-bold text-white">No Teams Available for Judging</h3>
+          <p className="text-xs text-slate-400 leading-relaxed max-w-sm mx-auto">
+            There are no hackathon teams registered inside the portal yet. Go to the <span className="text-indigo-400 font-bold">Organizer Control</span> tab to register a new hacker team first.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

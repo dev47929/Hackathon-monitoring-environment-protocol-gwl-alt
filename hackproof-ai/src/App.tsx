@@ -19,41 +19,6 @@ import FallbackBanner from './components/FallbackBanner';
 import BlockchainExplorer from './components/BlockchainExplorer';
 
 function PrivateRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles: string[] }) {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (!allowedRoles.includes(user.role)) {
-    return (
-      <div className="max-w-xl mx-auto my-12 bg-slate-900/60 border border-rose-500/30 rounded-2xl p-8 text-center space-y-6 relative overflow-hidden shadow-xl" id="auth-restriction-block">
-        <div className="absolute top-0 left-0 right-0 h-1 bg-rose-500/30 animate-pulse"></div>
-        <div className="w-14 h-14 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center mx-auto">
-          <ShieldAlert className="w-8 h-8 animate-bounce" />
-        </div>
-        <div className="space-y-2">
-          <span className="text-[10px] font-mono text-rose-450 uppercase tracking-widest font-extrabold">[ACCESS RESTRICTED]</span>
-          <h3 className="text-xl font-extrabold text-white">Role Mismatch</h3>
-          <p className="text-xs text-slate-400 leading-relaxed max-w-sm mx-auto">
-            You are signed in as a <span className="text-indigo-400 font-bold uppercase">{user.role === 'team' ? 'Hacker' : user.role}</span>, but you are trying to view the <span className="text-rose-400 font-bold uppercase">{allowedRoles.join(' or ')}</span> area.
-          </p>
-        </div>
-        <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
-          <button type="button" onClick={() => navigate('/login')}
-            className="px-5 py-2.5 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 hover:border-rose-500/50 text-xs font-mono text-rose-400 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2">
-            <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Change Your Role
-          </button>
-          <button type="button" onClick={() => navigate(`/${user.role}`)}
-            className="px-5 py-2.5 bg-slate-950 hover:bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1">
-            <ArrowLeft className="w-3.5 h-3.5" /> Back to Safe Zone
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return <>{children}</>;
 }
 

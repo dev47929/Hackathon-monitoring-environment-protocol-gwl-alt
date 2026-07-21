@@ -70,11 +70,11 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
 
   return (
     <div className="relative">
-      <div className="fixed inset-0 w-full h-full z-0 pointer-events-none" style={{ width: '1080px', height: '1080px' }}>
+      <div className="fixed inset-0 w-screen h-screen z-0 pointer-events-none">
         <Silk
           speed={5}
           scale={1}
-          color="#2b5f66"
+          color="#295e65"
           noiseIntensity={4.5}
           rotation={5.2}
         />
@@ -84,7 +84,7 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
       <section className="py-4 md:py-8 space-y-10">
 
         {/* Top row: text left, video right */}
-        <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+        <div className="flex flex-col lg:flex-row items-start gap-10 lg:gap-16">
 
           {/* LEFT: Text & badge */}
           <div className="flex-1 space-y-6 text-left">
@@ -94,7 +94,7 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
               transition={{ delay: 0.1 }}
             >
 
-              <h1 className="text-4xl md:text-5xl xl:text-6xl font-extrabold text-white tracking-tight leading-tight">
+              <h1 className="text-3xl md:text-4xl xl:text-5xl font-extrabold text-white tracking-tight leading-tight">
                 Continuous, Transparent<br />&amp; Intelligent{' '}
                 <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-600 bg-clip-text text-transparent">
                   Hackathon Evaluation
@@ -137,7 +137,7 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.35, duration: 0.5 }}
-            className="flex-1 w-full max-w-xl lg:max-w-none"
+            className="flex-1 w-full max-w-xl lg:max-w-none lg:mt-3"
           >
             <div className="relative rounded-2xl overflow-hidden border border-slate-800 shadow-2xl shadow-black/50 bg-slate-950 aspect-video">
               <video

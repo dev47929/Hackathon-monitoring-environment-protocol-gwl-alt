@@ -260,25 +260,29 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
                   </div>
 
                   <div className="space-y-3.5 pt-2">
-                    {techStackCounts.map(([tech, count]) => {
-                      const percentage = (count / maxTechCount) * 100;
-                      return (
-                        <div key={tech} className="space-y-1">
-                          <div className="flex justify-between text-xs font-mono text-slate-300">
-                            <span>{tech}</span>
-                            <span>{count} team{count !== 1 ? 's' : ''} ({Math.round((count / teams.length) * 100)}%)</span>
+                    {techStackCounts.length === 0 ? (
+                      <p className="text-xs text-slate-400 italic">No technologies registered yet. Register teams to compile statistics.</p>
+                    ) : (
+                      techStackCounts.map(([tech, count]) => {
+                        const percentage = (count / maxTechCount) * 100;
+                        return (
+                          <div key={tech} className="space-y-1">
+                            <div className="flex justify-between text-xs font-mono text-slate-300">
+                              <span>{tech}</span>
+                              <span>{count} team{count !== 1 ? 's' : ''} ({Math.round((count / (teams.length || 1)) * 100)}%)</span>
+                            </div>
+                            <div className="w-full h-4 bg-slate-950 rounded-lg overflow-hidden border border-slate-850/40 relative">
+                              <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${percentage}%` }}
+                                transition={{ duration: 0.8 }}
+                                className="bg-gradient-to-r from-emerald-500/20 to-emerald-500 h-full rounded-lg"
+                              />
+                            </div>
                           </div>
-                          <div className="w-full h-4 bg-slate-950 rounded-lg overflow-hidden border border-slate-850/40 relative">
-                            <motion.div 
-                              initial={{ width: 0 }}
-                              animate={{ width: `${percentage}%` }}
-                              transition={{ duration: 0.8 }}
-                              className="bg-gradient-to-r from-emerald-500/20 to-emerald-500 h-full rounded-lg"
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })
+                    )}
                   </div>
                 </div>
 

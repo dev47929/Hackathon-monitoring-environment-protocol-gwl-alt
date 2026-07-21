@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   GitBranch, GitCommit, GitPullRequest, Code, Plus, 
   AlertTriangle, CheckCircle2, RefreshCw, Send, ShieldCheck, 
-  Layers, Database, Cpu, Terminal, HelpCircle, AlertOctagon, Info
+  Layers, Database, Cpu, Terminal, HelpCircle, AlertOctagon, Info, Users
 } from 'lucide-react';
 
 interface TeamDashboardProps {
@@ -20,7 +20,7 @@ export default function TeamDashboard({ teams, selectedTeamId, onUpdateTeam, onA
 
   // Git commit form state
   const [commitMessage, setCommitMessage] = useState('');
-  const [commitAuthor, setCommitAuthor] = useState(currentTeam.members[0].split(' (')[0]);
+  const [commitAuthor, setCommitAuthor] = useState(currentTeam?.members?.[0]?.split(' (')[0] || '');
   const [commitCategory, setCommitCategory] = useState<Commit['category']>('frontend');
   const [commitAdditions, setCommitAdditions] = useState('120');
   const [commitDeletions, setCommitDeletions] = useState('15');
@@ -185,7 +185,7 @@ export default function TeamDashboard({ teams, selectedTeamId, onUpdateTeam, onA
     setJustificationTexts({ ...justificationTexts, [commitHash]: '' });
   };
 
-  const flaggedCommits = currentTeam.commits.filter(c => c.isSuspicious);
+  const flaggedCommits = currentTeam?.commits?.filter(c => c.isSuspicious) || [];
 
   const getCategoryIcon = (category: Commit['category']) => {
     switch (category) {
@@ -197,6 +197,22 @@ export default function TeamDashboard({ teams, selectedTeamId, onUpdateTeam, onA
       default: return <GitCommit className="w-4 h-4 text-slate-400" />;
     }
   };
+
+  if (!currentTeam) {
+    return (
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center space-y-6 max-w-xl mx-auto my-12" id="empty-team-view">
+        <div className="w-16 h-16 rounded-full bg-slate-900 flex items-center justify-center text-slate-500 mx-auto border border-slate-850">
+          <Users className="w-8 h-8 text-indigo-400" />
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-xl font-bold text-white">No Hackathon Teams Registered</h3>
+          <p className="text-xs text-slate-400 leading-relaxed max-w-sm mx-auto">
+            There are no hackathon teams registered inside the portal yet. Go to the <span className="text-indigo-400 font-bold">Organizer Control</span> tab to add a brand new team first.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

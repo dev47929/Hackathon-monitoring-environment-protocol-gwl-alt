@@ -7,6 +7,18 @@ async function main(): Promise<void> {
   await prisma.$connect()
   console.log('[db] Connected to database.')
 
+  // Clean all existing data to start fresh
+  try {
+    await prisma.transaction.deleteMany()
+    await prisma.block.deleteMany()
+    await prisma.commit.deleteMany()
+    await prisma.team.deleteMany()
+    await prisma.activityLog.deleteMany()
+    console.log('[db] All demo team data removed from database.')
+  } catch (err) {
+    console.error('Failed to clear database:', err)
+  }
+
   await seedIfEmpty()
 
   const server = app.listen(config.server.port, () => {
