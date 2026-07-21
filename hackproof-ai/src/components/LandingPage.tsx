@@ -1,6 +1,7 @@
 import { motion } from 'motion/react';
 import { Shield, GitCommit, Search, AlertCircle, Sparkles, Database, Mail, Trophy, Cpu, Flame, Users, CheckCircle2, ChevronRight, HelpCircle } from 'lucide-react';
 import ArchitectureFlow from './ArchitectureFlow';
+import Silk from '@/components/Silk';
 
 interface LandingPageProps {
   onSelectRole: (role: 'team' | 'judge' | 'organizer') => void;
@@ -68,7 +69,17 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
   ];
 
   return (
-    <div className="space-y-16">
+    <div className="relative">
+      <div className="fixed inset-0 w-full h-full z-0 pointer-events-none" style={{ width: '1080px', height: '1080px' }}>
+        <Silk
+          speed={5}
+          scale={1}
+          color="#2b5f66"
+          noiseIntensity={4.5}
+          rotation={5.2}
+        />
+      </div>
+      <div className="relative z-10 space-y-16">
       {/* Hero Section — two-column layout */}
       <section className="py-4 md:py-8 space-y-10">
 
@@ -257,6 +268,7 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
       </section>
 
 
+    </div>
     </div>
   );
 }

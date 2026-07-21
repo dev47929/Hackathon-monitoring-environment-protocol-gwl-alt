@@ -81,10 +81,22 @@ export default function AuthGate({ teams, onLogin, onCancel, initialRole = 'team
       const decoded = decodeTokenPayload(token);
       const actualRole = (decoded?.role || userRole) as AuthenticatedUser['role'];
 
+      let teamId: string | undefined;
+      if (actualRole === 'team') {
+        const matchedTeam = teams.find(t =>
+          t.members.some(m =>
+            m.toLowerCase().includes(email.toLowerCase().split('@')[0]) ||
+            m.toLowerCase().includes(userName.toLowerCase().split(' ')[0])
+          )
+        );
+        teamId = matchedTeam?.id;
+      }
+
       const authenticatedUser: AuthenticatedUser = {
         email: email.toLowerCase(),
         name: userName,
         role: actualRole,
+        teamId,
       };
 
       setSuccess(isSignUp ? 'Registration successful! Redirecting...' : 'Authentication successful!');

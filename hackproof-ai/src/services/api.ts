@@ -1,4 +1,4 @@
-import { Team, Commit, HackathonStats, ActivityLog, BlocksResponse, TransactionDetail, BlockchainMode } from '../types';
+import { Team, HackathonStats, ActivityLog, BlocksResponse, TransactionDetail, BlockchainMode } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
 
@@ -85,7 +85,21 @@ export const TeamsAPI = {
     });
   },
 
-  async update(id: string, updates: Partial<Team>): Promise<{ status: string; data: Record<string, unknown> }> {
+  async update(id: string, updates: {
+    name?: string;
+    avatar?: string;
+    techStack?: string[];
+    members?: string[];
+    progress?: number;
+    description?: string;
+    claimedFeatures?: {
+      id: string;
+      claim: string;
+      expectedEvidence?: string;
+      actualCodeReference?: string;
+      status: 'verified' | 'unverified' | 'partially';
+    }[];
+  }): Promise<{ status: string; data: Record<string, unknown> }> {
     return apiFetch(`${API_BASE}/api/teams/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -93,7 +107,7 @@ export const TeamsAPI = {
     });
   },
 
-  async sendReport(id: string, email: string, reportText: string): Promise<{ status: string; message: string }> {
+  async sendReport(id: string, email: string, reportText: string): Promise<{ status: string; message: string; forwarded: boolean }> {
     return apiFetch(`${API_BASE}/api/teams/${id}/send-report`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -229,7 +243,7 @@ export const AuthAPI = {
     });
   },
 
-  async login(email: string, password: string): Promise<{ status: string; data: { user: { id: string; email: string; name: string; role: string; createdAt: string; password?: string }; token: string } }> {
+  async login(email: string, password: string): Promise<{ status: string; data: { user: { id: string; email: string; name: string; role: string; createdAt: string }; token: string } }> {
     return apiFetch(`${API_BASE}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
