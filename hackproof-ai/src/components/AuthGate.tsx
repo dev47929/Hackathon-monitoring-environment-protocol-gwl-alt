@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  ShieldCheck, Lock, Mail, User, Key, KeyRound, 
-  CheckCircle, Eye, EyeOff, UserPlus, ArrowRight, Zap, RefreshCw
+  Lock, Mail, User, Key, KeyRound, 
+  CheckCircle, Eye, EyeOff, UserPlus, ArrowRight, RefreshCw
 } from 'lucide-react';
 import { AuthAPI, setStoredToken } from '../services/api';
 import { Team, AuthenticatedUser } from '../types';
@@ -29,39 +29,13 @@ export default function AuthGate({ teams, onLogin, onCancel, initialRole = 'team
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [selectedTeamId, setSelectedTeamId] = useState(teams[0]?.id || 'team-1');
+  const [teamName, setTeamName] = useState('');
   
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const handleQuickLogin = async (demo: { email: string; name: string; role: 'team' | 'judge' | 'organizer'; teamId?: string; label: string }) => {
-    setIsLoading(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      const res = await AuthAPI.login(demo.email, 'password123');
-      const token = res.data.token;
-      setStoredToken(token);
-
-      const decoded = decodeTokenPayload(token);
-      const authenticatedUser: AuthenticatedUser = {
-        email: demo.email,
-        name: demo.name,
-        role: decoded?.role as AuthenticatedUser['role'] || demo.role,
-        teamId: demo.role === 'team' ? demo.teamId : undefined,
-      };
-
-      setSuccess(`Authenticated as ${demo.name}!`);
-      setTimeout(() => onLogin(authenticatedUser), 800);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Login failed.';
-      setError(message);
-      setIsLoading(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,7 +85,6 @@ export default function AuthGate({ teams, onLogin, onCancel, initialRole = 'team
         email: email.toLowerCase(),
         name: userName,
         role: actualRole,
-        teamId: role === 'team' ? selectedTeamId : undefined,
       };
 
       setSuccess(isSignUp ? 'Registration successful! Redirecting...' : 'Authentication successful!');
@@ -123,12 +96,6 @@ export default function AuthGate({ teams, onLogin, onCancel, initialRole = 'team
     }
   };
 
-  const DEMO_ACCOUNTS = [
-    { name: 'Alex Dev', email: 'alex@neuralnexus.ai', role: 'team' as const, teamId: 'team-1', label: 'Hacker (NeuralNexus)' },
-    { name: 'Sarah Codes', email: 'sarah@defiguard.ai', role: 'team' as const, teamId: 'team-2', label: 'Hacker (DeFiGuard)' },
-    { name: 'Dr. Elizabeth', email: 'judge.elizabeth@hackproof.ai', role: 'judge' as const, label: 'Lead Hackathon Judge' },
-    { name: 'Admin Host', email: 'admin@hackproof.ai', role: 'organizer' as const, label: 'System Organizer' }
-  ];
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-8" id="auth-gate-container">
@@ -232,33 +199,7 @@ export default function AuthGate({ teams, onLogin, onCancel, initialRole = 'team
                 </div>
               </div>
 
-              {/* Dynamic Team Selector if Hacker role is active */}
-              <AnimatePresence mode="wait">
-                {role === 'team' && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="space-y-2 border-t border-slate-850/50 pt-3.5"
-                  >
-                    <label className="text-[10px] font-mono text-slate-500 uppercase tracking-widest block">Associate with Active Team</label>
-                    <select
-                      value={selectedTeamId}
-                      onChange={(e) => setSelectedTeamId(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-850 text-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono focus:outline-none focus:border-indigo-500/50 transition-colors cursor-pointer"
-                    >
-                      {teams.map(t => (
-                        <option key={t.id} value={t.id}>
-                          {t.avatar} {t.name} ({t.repoUrl.replace('https://github.com/', 'gh:')})
-                        </option>
-                      ))}
-                    </select>
-                    <p className="text-[10px] text-slate-500 italic font-mono pl-1">
-                      Joining this team gives you immediate push-webhook credentials.
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+
 
               {/* Inputs */}
               <div className="space-y-3.5 pt-2">
@@ -274,6 +215,24 @@ export default function AuthGate({ teams, onLogin, onCancel, initialRole = 'team
                         placeholder="Alex Rivera"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-850 rounded-xl pl-10 pr-4 py-2.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-indigo-500/50 transition-colors"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {role === 'team' && (
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-mono text-slate-500 uppercase tracking-widest block">Team Name</label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
+                        <User className="w-4 h-4" />
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="e.g. NeuralNexus"
+                        value={teamName}
+                        onChange={(e) => setTeamName(e.target.value)}
                         className="w-full bg-slate-950 border border-slate-850 rounded-xl pl-10 pr-4 py-2.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-indigo-500/50 transition-colors"
                       />
                     </div>
@@ -375,21 +334,6 @@ export default function AuthGate({ teams, onLogin, onCancel, initialRole = 'team
             </form>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-slate-850/50">
-            <div className="flex flex-wrap gap-2">
-              {DEMO_ACCOUNTS.map((demo) => (
-                <button
-                  key={demo.email}
-                  onClick={() => handleQuickLogin(demo)}
-                  disabled={isLoading}
-                  className="flex-1 min-w-[120px] p-2 bg-slate-950/60 border border-slate-850/60 rounded-lg hover:bg-slate-900/80 transition-all cursor-pointer disabled:opacity-50"
-                >
-                  <div className="text-[10px] font-mono text-indigo-400 font-bold">{demo.name}</div>
-                  <div className="text-[8px] font-mono text-slate-500">{demo.label}</div>
-                </button>
-              ))}
-            </div>
-          </div>
 
         </div>
 

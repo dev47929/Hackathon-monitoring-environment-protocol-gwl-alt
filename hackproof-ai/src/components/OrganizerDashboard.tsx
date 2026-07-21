@@ -57,7 +57,7 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
         description,
         commits: [],
         claimedFeatures: [],
-        interviewQuestions: [],
+        interviewQuestions: [ `     `],
       };
 
       onRegisterTeam(minimalTeam);
