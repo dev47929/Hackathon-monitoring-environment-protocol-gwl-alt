@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Team, HackathonStats, ActivityLog } from '../types';
-import { TeamsAPI } from '../services/api';
+import { TeamsAPI, AuthAPI } from '../services/api';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Users, BarChart2, GitCommit, ShieldAlert, Plus, Layers, 
@@ -22,8 +22,17 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
   const [newTeamLead, setNewTeamLead] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
 
+  // User accounts form state
+  const [accountName, setAccountName] = useState('');
+  const [accountEmail, setAccountEmail] = useState('');
+  const [accountPassword, setAccountPassword] = useState('');
+  const [accountRole, setAccountRole] = useState<'team' | 'judge'>('team');
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+  const [accountError, setAccountError] = useState('');
+  const [accountSuccess, setAccountSuccess] = useState('');
+
   // Tab state
-  const [activeTab, setActiveTab] = useState<'analytics' | 'register' | 'logs'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'register' | 'logs' | 'accounts'>('analytics');
 
   // Register Team Submit handler
   const handleRegisterTeamSubmit = async (e: React.FormEvent) => {
@@ -102,6 +111,50 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
     setNewTeamLead('');
     setIsRegistering(false);
     setActiveTab('analytics');
+  };
+
+  const handleCreateAccountSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!accountName.trim() || !accountEmail.trim() || !accountPassword.trim()) {
+      setAccountError('Please fill in all account credentials.');
+      return;
+    }
+    if (accountPassword.length < 8) {
+      setAccountError('Secret Passkey must be at least 8 characters.');
+      return;
+    }
+
+    setIsCreatingAccount(true);
+    setAccountError('');
+    setAccountSuccess('');
+
+    try {
+      await AuthAPI.register({
+        name: accountName.trim(),
+        email: accountEmail.trim().toLowerCase(),
+        password: accountPassword,
+        role: accountRole,
+      });
+
+      setAccountSuccess(`Account provisioned successfully for "${accountName}" (${accountRole === 'team' ? 'Hacker' : 'Judge'})!`);
+      
+      onAddActivityLog({
+        id: `log-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        type: 'success',
+        message: `IDENTITY PROTOCOL: Registered new user "${accountName}" with role "${accountRole}".`,
+        teamName: 'System',
+      });
+
+      setAccountName('');
+      setAccountEmail('');
+      setAccountPassword('');
+    } catch (err: any) {
+      console.warn('Backend user registration error:', err);
+      setAccountError(err?.message || 'Error occurred while creating user account.');
+    } finally {
+      setIsCreatingAccount(false);
+    }
   };
 
   // Compile Tech Stack Popularity counts
@@ -211,6 +264,18 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
               >
                 <span>📜 Activity Log</span>
                 <Database className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={() => setActiveTab('accounts')}
+                className={`w-full py-2.5 px-4 rounded-xl text-xs font-mono text-left flex items-center justify-between border cursor-pointer transition-all ${
+                  activeTab === 'accounts'
+                    ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300 font-bold'
+                    : 'bg-slate-950/60 border-slate-850 text-slate-400 hover:text-slate-300'
+                }`}
+              >
+                <span>👤 Add User Accounts</span>
+                <Users className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -423,6 +488,122 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
                     );
                   })}
                 </div>
+              </motion.div>
+            )}
+            {/* User provisioning console */}
+            {activeTab === 'accounts' && (
+              <motion.div
+                key="accounts"
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                className="bg-slate-900 border border-slate-800 rounded-xl p-5 md:p-6 space-y-4"
+              >
+                <div>
+                  <h4 className="text-sm font-semibold text-white uppercase tracking-wider font-mono">Provision User Accounts</h4>
+                  <p className="text-xs text-slate-400 mt-1">Generate access credentials locally for hackers (teams) and judges. These details are written to the main credentials database.</p>
+                </div>
+
+                <form onSubmit={handleCreateAccountSubmit} className="space-y-4">
+                  
+                  {/* Status Lights */}
+                  {accountError && (
+                    <div className="p-3.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-xs font-mono">
+                      ⚠️ {accountError}
+                    </div>
+                  )}
+
+                  {accountSuccess && (
+                    <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-mono">
+                      ✅ {accountSuccess}
+                    </div>
+                  )}
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-mono text-slate-400 block uppercase">Full Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Alex Rivera"
+                        value={accountName}
+                        onChange={(e) => setAccountName(e.target.value)}
+                        required
+                        className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-slate-750"
+                      />
+                    </div>
+                    
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-mono text-slate-400 block uppercase">Authorized Role</label>
+                      <select
+                        value={accountRole}
+                        onChange={(e) => setAccountRole(e.target.value as 'team' | 'judge')}
+                        className="w-full bg-slate-950 border border-slate-850 rounded-xl px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-slate-750 font-mono"
+                      >
+                        <option value="team">Hacker (Team)</option>
+                        <option value="judge">Judge (Cockpit)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-mono text-slate-400 block uppercase">Email Address</label>
+                      <input
+                        type="email"
+                        placeholder="e.g. alex@alphadevs.com"
+                        value={accountEmail}
+                        onChange={(e) => setAccountEmail(e.target.value)}
+                        required
+                        className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-slate-755"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center">
+                        <label className="text-xs font-mono text-slate-400 uppercase">Secret Passkey</label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+                            let autoPass = '';
+                            for (let i = 0; i < 12; i++) {
+                              autoPass += chars.charAt(Math.floor(Math.random() * chars.length));
+                            }
+                            setAccountPassword(autoPass);
+                          }}
+                          className="text-[10px] font-mono text-indigo-400 hover:text-indigo-300 pointer-events-auto"
+                        >
+                          [Auto Key Generator]
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Min. 8 characters"
+                        value={accountPassword}
+                        onChange={(e) => setAccountPassword(e.target.value)}
+                        required
+                        className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-slate-755 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isCreatingAccount}
+                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs font-mono flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    {isCreatingAccount ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        PROVISIONING IDENTITY RECORD...
+                      </>
+                    ) : (
+                      <>
+                        <Users className="w-4 h-4" /> GENERATE USER ACCESS SET
+                      </>
+                    )}
+                  </button>
+                </form>
               </motion.div>
             )}
 

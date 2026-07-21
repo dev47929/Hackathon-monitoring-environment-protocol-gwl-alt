@@ -19,6 +19,17 @@ import FallbackBanner from './components/FallbackBanner';
 import BlockchainExplorer from './components/BlockchainExplorer';
 
 function PrivateRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles: string[] }) {
+  const { user } = useAuth();
+  const location = useLocation();
+
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (!allowedRoles.includes(user.role)) {
+    return <Navigate to="/" replace />;
+  }
+
   return <>{children}</>;
 }
 

@@ -146,7 +146,7 @@ export default function AuthGate({ teams, onLogin, onCancel, initialRole = 'team
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setIsSignUp(true); setError(''); setSuccess(''); }}
+                  onClick={() => { setIsSignUp(true); setRole('organizer'); setError(''); setSuccess(''); }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
                     isSignUp ? 'bg-slate-900 text-white border border-slate-800' : 'text-slate-400 hover:text-slate-200'
                   }`}
@@ -169,52 +169,64 @@ export default function AuthGate({ teams, onLogin, onCancel, initialRole = 'team
             <form onSubmit={handleSubmit} className="space-y-4">
               
               {/* Role Selection Blocks */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-mono text-slate-500 uppercase tracking-widest block">Authorized Access Role</label>
-                <div className="grid grid-cols-3 gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setRole('team')}
-                    className={`p-3 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
-                      role === 'team'
-                        ? 'bg-indigo-500/10 border-indigo-500/40 text-white ring-1 ring-indigo-500/20'
-                        : 'bg-slate-950/40 border-slate-850/60 text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    <User className="w-4.5 h-4.5 mb-0.5" />
-                    <span className="text-xs font-semibold leading-none">Hacker</span>
-                    <span className="text-[9px] font-mono text-slate-500">Team Hub</span>
-                  </button>
+              {!isSignUp ? (
+                <div className="space-y-2">
+                  <label className="text-[10px] font-mono text-slate-500 uppercase tracking-widest block font-bold">Authorized Access Role</label>
+                  <div className="grid grid-cols-3 gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setRole('team')}
+                      className={`p-3 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                        role === 'team'
+                          ? 'bg-indigo-500/10 border-indigo-500/40 text-white ring-1 ring-indigo-500/20'
+                          : 'bg-slate-950/40 border-slate-850/60 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <User className="w-4.5 h-4.5 mb-0.5" />
+                      <span className="text-xs font-semibold leading-none">Hacker</span>
+                      <span className="text-[9px] font-mono text-slate-500">Team Hub</span>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setRole('judge')}
-                    className={`p-3 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
-                      role === 'judge'
-                        ? 'bg-indigo-500/10 border-indigo-500/40 text-white ring-1 ring-indigo-500/20'
-                        : 'bg-slate-950/40 border-slate-850/60 text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    <Key className="w-4.5 h-4.5 mb-0.5" />
-                    <span className="text-xs font-semibold leading-none">Judge</span>
-                    <span className="text-[9px] font-mono text-slate-500">Cockpit</span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setRole('judge')}
+                      className={`p-3 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                        role === 'judge'
+                          ? 'bg-indigo-500/10 border-indigo-500/40 text-white ring-1 ring-indigo-500/20'
+                          : 'bg-slate-950/40 border-slate-850/60 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <Key className="w-4.5 h-4.5 mb-0.5" />
+                      <span className="text-xs font-semibold leading-none">Judge</span>
+                      <span className="text-[9px] font-mono text-slate-500">Cockpit</span>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setRole('organizer')}
-                    className={`p-3 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
-                      role === 'organizer'
-                        ? 'bg-indigo-500/10 border-indigo-500/40 text-white ring-1 ring-indigo-500/20'
-                        : 'bg-slate-950/40 border-slate-850/60 text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    <KeyRound className="w-4.5 h-4.5 mb-0.5" />
-                    <span className="text-xs font-semibold leading-none">Organizer</span>
-                    <span className="text-[9px] font-mono text-slate-500">Platform</span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setRole('organizer')}
+                      className={`p-3 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                        role === 'organizer'
+                          ? 'bg-indigo-500/10 border-indigo-500/40 text-white ring-1 ring-indigo-500/20'
+                          : 'bg-slate-950/40 border-slate-850/60 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <KeyRound className="w-4.5 h-4.5 mb-0.5" />
+                      <span className="text-xs font-semibold leading-none">Organizer</span>
+                      <span className="text-[9px] font-mono text-slate-500">Platform</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-xl p-3.5 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <KeyRound className="w-4 h-4 text-indigo-400" />
+                    <span className="text-xs font-mono font-bold text-slate-200">Organizer Registration Console</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 leading-relaxed font-mono">
+                    Public signups are only allowed for event organizers. If you are a Hacker or a Judge, your login credentials will be generated by the organizer on their administration command panel.
+                  </p>
+                </div>
+              )}
 
 
 
