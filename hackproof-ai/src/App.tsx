@@ -181,8 +181,8 @@ export default function App() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
           <div className="flex items-center justify-between md:justify-start gap-4">
             <button onClick={() => navigate('/')} className="flex items-center gap-2.5 text-left group cursor-pointer">
-              <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/20 group-hover:scale-105 transition-transform duration-200">
-                <ShieldCheck className="w-5.5 h-5.5" />
+              <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg group-hover:scale-105 transition-transform duration-200">
+                <img src="/logo.png" alt="HackProof AI Logo" className="w-full h-full object-cover" />
               </div>
               <div>
                 <h1 className="text-base font-extrabold text-white tracking-tight flex items-center gap-1 leading-none uppercase">

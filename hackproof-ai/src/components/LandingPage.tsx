@@ -82,10 +82,7 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <span className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 rounded-full mb-4">
-                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse" />
-                AI-Powered Hackathon Integrity
-              </span>
+
               <h1 className="text-4xl md:text-5xl xl:text-6xl font-extrabold text-white tracking-tight leading-tight">
                 Continuous, Transparent<br />&amp; Intelligent{' '}
                 <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-600 bg-clip-text text-transparent">
