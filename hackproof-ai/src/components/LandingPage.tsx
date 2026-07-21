@@ -70,7 +70,7 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
   return (
     <div className="space-y-16">
       {/* Hero Section — two-column layout */}
-      <section className="py-12 md:py-20 max-w-6xl mx-auto px-4 space-y-10">
+      <section className="py-4 md:py-8 space-y-10">
 
         {/* Top row: text left, video right */}
         <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
@@ -195,7 +195,7 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
 
 
       {/* Comparative Section: Traditional vs HackProof AI */}
-      <section className="space-y-8 px-4 max-w-6xl mx-auto">
+      <section className="space-y-8">
         <div className="text-center">
           <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">The Paradigm Shift</h2>
           <p className="text-sm text-slate-400 mt-1">Why traditional hackathon judging is vulnerable to exploits, and how we fix it.</p>
@@ -230,7 +230,7 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
       </section>
 
       {/* Interactive System Flow Section */}
-      <section className="px-4 max-w-6xl mx-auto">
+      <section>
         <div className="text-center mb-8">
           <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">Interactive Platform Blueprint</h2>
           <p className="text-sm text-slate-400 mt-1">Click nodes to see how payloads route from Git commits to finalized judge scores.</p>
@@ -239,7 +239,7 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
       </section>
 
       {/* Feature Grid Section */}
-      <section className="space-y-8 px-4 max-w-6xl mx-auto">
+      <section className="space-y-8">
         <div className="text-center">
           <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">Powering Continuous Hackathons</h2>
           <p className="text-sm text-slate-400 mt-1">Our comprehensive security, monitoring, and verification services built on robust algorithms.</p>
