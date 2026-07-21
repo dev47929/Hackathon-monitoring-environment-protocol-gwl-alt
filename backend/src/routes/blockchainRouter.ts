@@ -19,7 +19,7 @@ blockchainRouter.get('/blockchain/blocks', asyncHandler(async (req, res) => {
     prisma.block.count(),
   ])
 
-  const mapped = blocks.map((b) => ({
+  const mapped = blocks.map((b: any) => ({
     number: b.number,
     hash: b.hash,
     parentHash: b.parentHash,
@@ -27,7 +27,7 @@ blockchainRouter.get('/blockchain/blocks', asyncHandler(async (req, res) => {
     minerAddress: b.minerAddress,
     gasUsed: b.gasUsed.toString(),
     txCount: b.txCount,
-    transactions: b.transactions.map((tx) => ({
+    transactions: b.transactions.map((tx: any) => ({
       hash: tx.hash,
       fromAddress: tx.fromAddress,
       toAddress: tx.toAddress,

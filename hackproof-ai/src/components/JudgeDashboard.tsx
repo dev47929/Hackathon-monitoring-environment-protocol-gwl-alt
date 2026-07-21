@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Team, Commit, ActivityLog } from '../types';
-import { CommitsAPI, DemoAuditAPI } from '../services/api';
+import { CommitsAPI, DemoAuditAPI, TeamsAPI } from '../services/api';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Trophy, ShieldAlert, CheckCircle2, AlertOctagon, Terminal, Play, 
   HelpCircle, Sparkles, FileText, Download, Users, Layers, Code, 
-  Check, X, Eye, ArrowRight, CornerDownRight, Mic, RefreshCw, AlertCircle
+  Check, X, Eye, ArrowRight, CornerDownRight, Mic, RefreshCw, AlertCircle,
+  Mail, Send, RotateCcw
 } from 'lucide-react';
 
 interface JudgeDashboardProps {
@@ -30,6 +31,24 @@ export default function JudgeDashboard({ teams, selectedTeamId, onSelectTeam, on
 
   // Markdown export preview state
   const [copiedReport, setCopiedReport] = useState(false);
+  const [customReport, setCustomReport] = useState('');
+  const [leaderEmail, setLeaderEmail] = useState('');
+  const [sendStatus, setSendStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+
+  // Helper to extract email or fall back to default
+  const getLeaderEmail = (team: Team) => {
+    const leaderMember = team.members.find(m => /leader/i.test(m)) || team.members[0] || '';
+    const emailMatch = leaderMember.match(/[\w.-]+@[\w.-]+\.\w+/);
+    if (emailMatch) return emailMatch[0];
+    const cleanTeamName = team.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    return `${cleanTeamName}-leader@gmail.com`;
+  };
+
+  useEffect(() => {
+    setCustomReport(generateMarkdownReport());
+    setLeaderEmail(getLeaderEmail(currentTeam));
+    setSendStatus('idle');
+  }, [selectedTeamId]);
 
   // Accept / Reject justification handler
   const handleReviewJustification = async (commitHash: string, status: 'accepted' | 'rejected') => {
@@ -131,7 +150,7 @@ export default function JudgeDashboard({ teams, selectedTeamId, onSelectTeam, on
   };
 
   // Generate complete Evaluation Markdown report
-  const generateMarkdownReport = () => {
+  function generateMarkdownReport() {
     const verifiedClaims = currentTeam.claimedFeatures.filter(c => c.status === 'verified').length;
     const totalClaims = currentTeam.claimedFeatures.length;
     const cleanCommits = currentTeam.commits.filter(c => !c.isSuspicious).length;
@@ -166,12 +185,35 @@ ${currentTeam.interviewQuestions.map((q, idx) => `**Q${idx + 1}: ${q.question}**
 
 ---
 *Report automatically compiled and locked on the blockchain by HackProof AI Engine on date: ${new Date().toLocaleDateString()}*`;
-  };
+  }
 
   const handleCopyReport = () => {
-    navigator.clipboard.writeText(generateMarkdownReport());
+    navigator.clipboard.writeText(customReport || generateMarkdownReport());
     setCopiedReport(true);
     setTimeout(() => setCopiedReport(false), 2000);
+  };
+
+  const handleSendReport = async () => {
+    if (!leaderEmail) return;
+    setSendStatus('sending');
+    try {
+      const response = await TeamsAPI.sendReport(currentTeam.id, leaderEmail, customReport || generateMarkdownReport());
+      if (response.status === 'success') {
+        setSendStatus('success');
+        onAddActivityLog({
+          id: `log-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          type: 'success',
+          message: `Evaluation Report successfully sent to Team Leader (${leaderEmail}) for Team ${currentTeam.name}.`,
+          teamName: currentTeam.name
+        });
+      } else {
+        setSendStatus('error');
+      }
+    } catch (err) {
+      console.error(err);
+      setSendStatus('error');
+    }
   };
 
   return (
@@ -622,7 +664,7 @@ ${currentTeam.interviewQuestions.map((q, idx) => `**Q${idx + 1}: ${q.question}**
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -5 }}
-                className="bg-slate-900 border border-slate-800 rounded-xl p-5 md:p-6 space-y-4"
+                className="bg-slate-900 border border-slate-800 rounded-xl p-5 md:p-6 space-y-5"
               >
                 <div className="flex items-center justify-between border-b border-slate-850 pb-3">
                   <div>
@@ -639,8 +681,83 @@ ${currentTeam.interviewQuestions.map((q, idx) => `**Q${idx + 1}: ${q.question}**
                   </button>
                 </div>
 
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-900 font-mono text-xs text-slate-300 overflow-y-auto max-h-[360px] whitespace-pre-wrap leading-relaxed">
-                  {generateMarkdownReport()}
+                {/* Forwarding Gmail / n8n section */}
+                <div className="grid sm:grid-cols-2 gap-4 bg-slate-950/40 p-4 rounded-xl border border-slate-850/80">
+                  <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                    <label className="text-[10px] font-mono text-slate-400 block uppercase tracking-wider">Recipient (Team Leader Email)</label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                      <input
+                        type="email"
+                        value={leaderEmail}
+                        onChange={(e) => setLeaderEmail(e.target.value)}
+                        placeholder="leader-email@gmail.com"
+                        className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col justify-end items-end gap-2 col-span-2 sm:col-span-1">
+                    <button
+                      type="button"
+                      onClick={handleSendReport}
+                      disabled={sendStatus === 'sending'}
+                      className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        sendStatus === 'sending'
+                          ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                          : sendStatus === 'success'
+                          ? 'bg-emerald-500 text-slate-950 border border-emerald-500 shadow-md shadow-emerald-500/10'
+                          : sendStatus === 'error'
+                          ? 'bg-rose-500 text-white border border-rose-500'
+                          : 'bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-600 shadow-md shadow-indigo-600/15'
+                      }`}
+                    >
+                      {sendStatus === 'sending' ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          SENDING...
+                        </>
+                      ) : sendStatus === 'success' ? (
+                        <>
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          REPORT DISPATCHED TO GMAIL!
+                        </>
+                      ) : sendStatus === 'error' ? (
+                        <>
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          DELIVERY FAILED (TRY AGAIN)
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-3.5 h-3.5" />
+                          SEND REPORT TO TEAM LEADER
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Customizable Text Area Editor */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Evaluation Report Editor</label>
+                    <button
+                      type="button"
+                      onClick={() => setCustomReport(generateMarkdownReport())}
+                      className="text-[10px] font-mono text-slate-500 hover:text-slate-400 flex items-center gap-1 cursor-pointer transition-colors"
+                      title="Revert back to auto-generated layout template"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      Restore Template
+                    </button>
+                  </div>
+
+                  <textarea
+                    value={customReport}
+                    onChange={(e) => setCustomReport(e.target.value)}
+                    className="w-full min-h-[300px] bg-slate-950 p-4 border border-slate-800 rounded-xl text-slate-200 font-mono text-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none leading-relaxed resize-y"
+                    placeholder="Start writing the final evaluation report..."
+                  />
                 </div>
               </motion.div>
             )}

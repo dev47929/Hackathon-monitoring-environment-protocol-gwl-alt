@@ -293,23 +293,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* Role Picker Helper Dropdown in Team selector view */}
-      {currentRole === 'team' && (
-        <div className="bg-slate-900 border-b border-slate-850 px-4 py-2 flex items-center justify-center gap-3">
-          <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">Simulating console for team:</span>
-          <select
-            value={selectedTeamId}
-            onChange={(e) => setSelectedTeamId(e.target.value)}
-            className="bg-slate-950 border border-slate-800 text-slate-200 rounded-lg text-xs px-3 py-1 font-mono focus:outline-none focus:border-slate-700 cursor-pointer"
-          >
-            {teams.map(t => (
-              <option key={t.id} value={t.id}>
-                {t.avatar} {t.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+
 
       {/* Main Container Stage */}
       <main className="flex-grow max-w-7xl w-full mx-auto p-4 md:p-8">
@@ -371,11 +355,10 @@ export default function App() {
                           <ShieldAlert className="w-8 h-8 animate-bounce" />
                         </div>
                         <div className="space-y-2">
-                          <span className="text-[10px] font-mono text-rose-400 uppercase tracking-widest font-extrabold">[SECURITY OVERRIDE DETECTED]</span>
-                          <h3 className="text-xl font-extrabold text-white">Cryptographic Role Mismatch</h3>
+                          <span className="text-[10px] font-mono text-rose-450 uppercase tracking-widest font-extrabold">[ACCESS RESTRICTED]</span>
+                          <h3 className="text-xl font-extrabold text-white">Role Mismatch</h3>
                           <p className="text-xs text-slate-400 leading-relaxed max-w-sm mx-auto">
-                            Your current active signature token is for a <span className="text-indigo-400 font-bold uppercase">{user.role === 'team' ? 'Hacker' : user.role}</span>. 
-                            You are trying to enter the protected <span className="text-rose-400 font-bold uppercase">{currentRole === 'team' ? 'Hacker Hub' : currentRole === 'judge' ? 'Judge Cockpit' : 'Organizer Control'}</span>.
+                            You are signed in as a <span className="text-indigo-400 font-bold uppercase">{user.role === 'team' ? 'Hacker' : user.role}</span>, but you are trying to view the protected <span className="text-rose-400 font-bold uppercase">{currentRole === 'team' ? 'Hacker Hub' : currentRole === 'judge' ? 'Judge Cockpit' : 'Organizer Control'}</span>.
                           </p>
                         </div>
 
@@ -390,7 +373,7 @@ export default function App() {
                             className="px-5 py-2.5 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 hover:border-rose-500/50 text-xs font-mono text-rose-400 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2"
                           >
                             <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                            Switch Authorized Credentials
+                            Change Your Role
                           </button>
                           <button
                             type="button"

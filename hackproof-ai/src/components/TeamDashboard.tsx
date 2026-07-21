@@ -31,7 +31,7 @@ export default function TeamDashboard({ teams, selectedTeamId, onUpdateTeam, onA
   const [justificationTexts, setJustificationTexts] = useState<{ [commitHash: string]: string }>({});
 
   // Tab selection
-  const [activeTab, setActiveTab] = useState<'timeline' | 'alerts' | 'intel' | 'push'>('timeline');
+  const [activeTab, setActiveTab] = useState<'timeline' | 'alerts' | 'push'>('timeline');
 
   // Trigger simulated push via backend
   const handleSimulatePush = async (e: React.FormEvent) => {
@@ -360,20 +360,7 @@ export default function TeamDashboard({ teams, selectedTeamId, onUpdateTeam, onA
                 <Plus className="w-3 h-3 text-indigo-400" />
                 Simulate Push Webhook
               </button>
-              <button
-                onClick={() => setActiveTab('intel')}
-                className={`pb-3 px-3 text-xs font-mono uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
-                  activeTab === 'intel'
-                    ? 'border-indigo-500 text-white font-semibold'
-                    : 'border-transparent text-slate-400 hover:text-slate-300'
-                }`}
-              >
-                Project Intel
-              </button>
-            </div>
-            
-            <div className="hidden sm:flex items-center gap-1 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full text-[9px] font-mono text-indigo-300">
-              <ShieldCheck className="w-3 h-3" /> Webhooks Listening
+
             </div>
           </div>
 
@@ -386,11 +373,7 @@ export default function TeamDashboard({ teams, selectedTeamId, onUpdateTeam, onA
                 exit={{ opacity: 0, y: -5 }}
                 className="space-y-4"
               >
-                {/* Search helper/hint */}
-                <div className="flex items-center gap-2 bg-slate-950 p-3 rounded-xl border border-slate-900 text-xs text-slate-400">
-                  <Info className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                  <span>Showing real-time AI and Blockchain ledger summaries for pushed commits. Click <strong>Simulate Push Webhook</strong> above to write and fire a new git commit!</span>
-                </div>
+
 
                 <div className="relative border-l border-slate-800 pl-4 ml-3 space-y-6 py-2">
                   {currentTeam.commits.map((commit, index) => {
@@ -491,16 +474,13 @@ export default function TeamDashboard({ teams, selectedTeamId, onUpdateTeam, onA
                 className="bg-slate-900 border border-slate-800 rounded-xl p-5 md:p-6 space-y-4"
               >
                 <div>
-                  <h4 className="text-sm font-semibold text-white uppercase tracking-wider font-mono">Git Webhook Payload Simulator</h4>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Compose a mock commit and trigger our webhook receiver. The AI agent will intercept, dissect file additions/deletions, and write the metadata ledger blocks live.
-                  </p>
+                  <h4 className="text-sm font-semibold text-white uppercase tracking-wider font-mono">Code Update Tester</h4>
                 </div>
 
                 <form onSubmit={handleSimulatePush} className="space-y-4">
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-mono text-slate-400 block uppercase">Author / Committer</label>
+                      <label className="text-xs font-mono text-slate-400 block uppercase">Developer Name</label>
                       <select
                         value={commitAuthor}
                         onChange={(e) => setCommitAuthor(e.target.value)}
@@ -514,7 +494,7 @@ export default function TeamDashboard({ teams, selectedTeamId, onUpdateTeam, onA
                     </div>
                     
                     <div className="space-y-1.5">
-                      <label className="text-xs font-mono text-slate-400 block uppercase">Code Category</label>
+                      <label className="text-xs font-mono text-slate-400 block uppercase">Project Area</label>
                       <select
                         value={commitCategory}
                         onChange={(e) => setCommitCategory(e.target.value as any)}
@@ -530,7 +510,7 @@ export default function TeamDashboard({ teams, selectedTeamId, onUpdateTeam, onA
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-mono text-slate-400 block uppercase">Commit Message</label>
+                    <label className="text-xs font-mono text-slate-400 block uppercase">Change Description</label>
                     <input
                       type="text"
                       placeholder="e.g. Integrate token escrow transfer structures"
@@ -545,7 +525,7 @@ export default function TeamDashboard({ teams, selectedTeamId, onUpdateTeam, onA
                         onClick={() => setCommitMessage('Minor CSS adjustments inside header profile')}
                         className="px-2 py-0.5 bg-slate-950 hover:bg-slate-850 border border-slate-850 rounded text-[10px] font-mono text-slate-400 cursor-pointer"
                       >
-                        ⚡ Normal Push
+                        Standard Upload
                       </button>
                       <button
                         type="button"
@@ -555,7 +535,7 @@ export default function TeamDashboard({ teams, selectedTeamId, onUpdateTeam, onA
                         }}
                         className="px-2 py-0.5 bg-slate-950 hover:bg-slate-850 border border-slate-850 rounded text-[10px] font-mono text-amber-500 cursor-pointer"
                       >
-                        ⚠️ Mass Upload Trigger
+                        Bulk Upload
                       </button>
                       <button
                         type="button"
@@ -565,13 +545,13 @@ export default function TeamDashboard({ teams, selectedTeamId, onUpdateTeam, onA
                         }}
                         className="px-2 py-0.5 bg-slate-950 hover:bg-slate-850 border border-slate-850 rounded text-[10px] font-mono text-rose-500 cursor-pointer"
                       >
-                        🚨 Force Push Trigger
+                        Overwrite History
                       </button>
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-mono text-slate-400 block uppercase">Modified Files (comma separated)</label>
+                    <label className="text-xs font-mono text-slate-400 block uppercase">Edited Files</label>
                     <input
                       type="text"
                       value={changedFilesText}
@@ -580,26 +560,7 @@ export default function TeamDashboard({ teams, selectedTeamId, onUpdateTeam, onA
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-mono text-slate-400 block uppercase">Lines Added</label>
-                      <input
-                        type="number"
-                        value={commitAdditions}
-                        onChange={(e) => setCommitAdditions(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-slate-700 font-mono"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-mono text-slate-400 block uppercase">Lines Deleted</label>
-                      <input
-                        type="number"
-                        value={commitDeletions}
-                        onChange={(e) => setCommitDeletions(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-slate-700 font-mono"
-                      />
-                    </div>
-                  </div>
+
 
                   <button
                     type="submit"
@@ -620,67 +581,7 @@ export default function TeamDashboard({ teams, selectedTeamId, onUpdateTeam, onA
                   </button>
                 </form>
               </motion.div>
-            )}
-
-            {activeTab === 'intel' && (
-              <motion.div
-                key="intel"
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -5 }}
-                className="bg-slate-900 border border-slate-800 rounded-xl p-5 md:p-6 space-y-5"
-              >
-                <div>
-                  <h4 className="text-sm font-semibold text-white uppercase tracking-wider font-mono">Continuous Project Intelligence</h4>
-                  <p className="text-xs text-slate-400 mt-1">
-                    How the platform evaluates and catalogs your implementation patterns.
-                  </p>
-                </div>
-
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 space-y-2">
-                    <span className="text-xs font-semibold text-white">System Architecture Map</span>
-                    <p className="text-xs text-slate-400 leading-relaxed">
-                      Our system reviews and logs code changes across frontend hooks, custom databases, and blockchain environments continuously.
-                    </p>
-                    <div className="flex gap-1.5 pt-2">
-                      <span className="text-[10px] font-mono bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded">
-                        API Layers verified
-                      </span>
-                      <span className="text-[10px] font-mono bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-2 py-0.5 rounded">
-                        Contracts audited
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 space-y-2">
-                    <span className="text-xs font-semibold text-white">Presentation Claims Checked</span>
-                    <p className="text-xs text-slate-400 leading-relaxed">
-                      AI cross-checks feature list descriptions with real code elements on-the-fly.
-                    </p>
-                    <ul className="text-[11px] text-slate-300 space-y-1 pt-1 font-mono">
-                      {currentTeam.claimedFeatures.map(f => (
-                        <li key={f.id} className="flex items-center gap-1.5 truncate">
-                          <span className={f.status === 'verified' ? 'text-emerald-400' : 'text-amber-400'}>
-                            ●
-                          </span>
-                          <span className="truncate">{f.claim}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="bg-emerald-950/20 border border-emerald-900/40 p-4 rounded-xl space-y-2">
-                  <span className="text-xs font-semibold text-emerald-400 uppercase font-mono flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4" /> Blockchain Verification Shield Active
-                  </span>
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    By storing SHA audit digests of your repository hashes on-chain, HackProof AI ensures that your development sequence is secured against fraudulent history manipulation or post-deadline deletions. No source code or confidential secrets ever leave your environment.
-                  </p>
-                </div>
-              </motion.div>
-            )}
+                  )}
           </AnimatePresence>
         </div>
 

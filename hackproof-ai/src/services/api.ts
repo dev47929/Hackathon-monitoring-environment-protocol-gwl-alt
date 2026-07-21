@@ -48,6 +48,16 @@ export const TeamsAPI = {
       body: JSON.stringify(updates)
     });
     return handleResponse<{ status: string; data: Record<string, unknown> }>(res);
+  },
+
+  // Send report via email webhook
+  async sendReport(id: string, email: string, reportText: string): Promise<{ status: string; message: string }> {
+    const res = await fetch(`${API_BASE}/api/teams/${id}/send-report`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, reportText })
+    });
+    return handleResponse<{ status: string; message: string }>(res);
   }
 };
 

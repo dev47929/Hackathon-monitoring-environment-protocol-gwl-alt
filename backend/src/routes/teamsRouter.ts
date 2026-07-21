@@ -133,3 +133,44 @@ teamsRouter.patch('/:id', asyncHandler(async (req, res) => {
   const updated = await repo.updateTeam(req.params.id, updates)
   res.json({ status: 'success', data: { id: updated.id, ...updates } })
 }))
+
+teamsRouter.post('/:id/send-report', asyncHandler(async (req, res) => {
+  const team = await repo.getTeamById(req.params.id)
+  if (!team) throw notFound('Team not found.')
+
+  const { email, reportText } = req.body
+
+  const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL || 'https://primary-production-459f.up.railway.app/webhook/hackproof-report'
+  let networkSuccess = false
+  try {
+    const response = await fetch(n8nWebhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        teamId: team.id,
+        teamName: team.name,
+        recipientEmail: email,
+        reportContent: reportText,
+        timestamp: new Date().toISOString()
+      })
+    })
+    networkSuccess = response.ok
+  } catch (err) {
+    console.warn('Failed to forward report to webhook:', err)
+  }
+
+  await repo.addLog({
+    id: 'log-' + uuidv4().slice(0, 8),
+    timestamp: new Date().toISOString(),
+    type: 'info',
+    message: `Evaluation Report sent to Team Leader (${email}). Webhook forwarding status: ${networkSuccess ? 'Success' : 'Offline fallback active'}.`,
+    teamName: team.name
+  })
+
+  res.json({
+    status: 'success',
+    message: 'Report sent successfully.',
+    forwarded: networkSuccess
+  })
+}))
+

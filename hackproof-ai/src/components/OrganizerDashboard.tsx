@@ -19,10 +19,7 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
   // Register team form state
   const [newTeamName, setNewTeamName] = useState('');
   const [newTeamUrl, setNewTeamUrl] = useState('');
-  const [newTeamStack, setNewTeamStack] = useState('React, Tailwind, Node.js');
-  const [newTeamDesc, setNewTeamDesc] = useState('');
   const [newTeamLead, setNewTeamLead] = useState('');
-  const [newTeamAvatar, setNewTeamAvatar] = useState('🛸');
   const [isRegistering, setIsRegistering] = useState(false);
 
   // Tab state
@@ -34,28 +31,30 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
     if (!newTeamName.trim() || !newTeamUrl.trim()) return;
 
     setIsRegistering(true);
-    const techStack = newTeamStack.split(',').map(t => t.trim()).filter(Boolean);
+    const techStack = ['React', 'Tailwind', 'Node.js'];
+    const avatar = '🛸';
+    const description = 'A newly registered hackathon project.';
 
     try {
       const response = await TeamsAPI.register({
         name: newTeamName,
         repoUrl: newTeamUrl,
-        avatar: newTeamAvatar,
+        avatar,
         techStack,
         members: [newTeamLead ? `${newTeamLead} (Lead)` : 'Anonymous Hacker (Lead)'],
-        description: newTeamDesc || 'A newly registered hackathon project awaiting first git commit push webhook logs.',
+        description,
       });
 
       const minimalTeam: Team = {
         id: response.data.id,
         name: response.data.name,
         repoUrl: newTeamUrl,
-        avatar: newTeamAvatar,
+        avatar,
         techStack,
         members: [newTeamLead ? `${newTeamLead} (Lead)` : 'Anonymous Hacker (Lead)'],
         progress: response.data.progress,
         overallRiskScore: 0,
-        description: newTeamDesc || '',
+        description,
         commits: [],
         claimedFeatures: [],
         interviewQuestions: [],
@@ -68,9 +67,9 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
       const members = [newTeamLead ? `${newTeamLead} (Lead)` : 'Anonymous Hacker (Lead)'];
 
       const newTeam: Team = {
-        id, name: newTeamName, repoUrl: newTeamUrl, avatar: newTeamAvatar,
+        id, name: newTeamName, repoUrl: newTeamUrl, avatar,
         techStack, members, progress: 10, overallRiskScore: 0,
-        description: newTeamDesc || 'A newly registered hackathon project.',
+        description,
         commits: [{
           hash: 'init001', timestamp: new Date().toISOString(),
           author: newTeamLead || 'Lead Developer',
@@ -100,8 +99,6 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
 
     setNewTeamName('');
     setNewTeamUrl('');
-    setNewTeamStack('React, Tailwind, Node.js');
-    setNewTeamDesc('');
     setNewTeamLead('');
     setIsRegistering(false);
     setActiveTab('analytics');
@@ -212,7 +209,7 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
                     : 'bg-slate-950/60 border-slate-850 text-slate-400 hover:text-slate-300'
                 }`}
               >
-                <span>📜 Global Audit Ledger</span>
+                <span>📜 Activity Log</span>
                 <Database className="w-4 h-4" />
               </button>
             </div>
@@ -292,7 +289,7 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
                     Hackathon Intelligence Synopsis
                   </h4>
                   <p className="text-xs text-slate-300 leading-relaxed">
-                    AI scanning across all 5 participating teams shows active, continuous progress on the smart-contract suites, vision modules, and backend bridges. The ledger has detected <strong>{activeAlertsSum} distinct anomalies</strong> (including force overrides and bulk-paste sequences). Teams have been alerted, and explanation rates stand at 100% submission. Judges can safely review matching credentials inside the cockpit.
+                    AI is monitoring all {teams.length} participating teams. The system has currently detected <strong>{activeAlertsSum} risk flags</strong> (such as history overrides or bulk code copies). Flagged teams have submitted explanations, which judges can review inside the Judge Cockpit.
                   </p>
                 </div>
               </motion.div>
@@ -351,43 +348,7 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
                     />
                   </div>
 
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-mono text-slate-400 block uppercase">Tech Stack (comma separated)</label>
-                      <input
-                        type="text"
-                        value={newTeamStack}
-                        onChange={(e) => setNewTeamStack(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-slate-750 font-mono"
-                      />
-                    </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-mono text-slate-400 block uppercase">Team Avatar Symbol</label>
-                      <select
-                        value={newTeamAvatar}
-                        onChange={(e) => setNewTeamAvatar(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-slate-750"
-                      >
-                        <option value="🛸">🛸 Flying Saucer</option>
-                        <option value="🛡️">🛡️ Shield</option>
-                        <option value="🧩">🧩 Puzzle Piece</option>
-                        <option value="⚡">⚡ Lightning Bolt</option>
-                        <option value="🍃">🍃 Green Leaf</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-mono text-slate-400 block uppercase">Elevator Pitch Description</label>
-                    <textarea
-                      placeholder="Briefly state what the team is developing..."
-                      value={newTeamDesc}
-                      onChange={(e) => setNewTeamDesc(e.target.value)}
-                      required
-                      className="w-full bg-slate-950 border border-slate-850 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-slate-750 min-h-[80px]"
-                    />
-                  </div>
 
                   <button
                     type="submit"
@@ -419,7 +380,7 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
                 className="bg-slate-900 border border-slate-800 rounded-xl p-5 md:p-6 space-y-4"
               >
                 <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-semibold text-white uppercase tracking-wider font-mono">Immutable Ledger Transaction Logs</h4>
+                  <h4 className="text-sm font-semibold text-white uppercase tracking-wider font-mono">Activity Log</h4>
                   <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
                     ● AUDIT SECURE
                   </span>

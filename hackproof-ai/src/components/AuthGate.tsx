@@ -102,23 +102,16 @@ export default function AuthGate({ teams, onLogin, onCancel, initialRole = 'team
     <div className="max-w-4xl mx-auto p-4 md:p-8" id="auth-gate-container">
       {/* Title & Decorative Header */}
       <div className="text-center space-y-2 mb-8">
-        <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-xs font-mono text-indigo-400">
-          <ShieldCheck className="w-3.5 h-3.5 animate-pulse" />
-          <span>IMMUTABLE DEFI-LEVEL COCKPIT SECURITY ACTIVE</span>
-        </div>
         <h2 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight">
           Verify Your <span className="bg-gradient-to-r from-indigo-400 to-indigo-600 bg-clip-text text-transparent">Identity</span>
         </h2>
-        <p className="text-sm text-slate-400 max-w-md mx-auto">
-          Access your personalized dashboard or test the hackathon platform. Log in below to securely sign transactions, verify commits, and review projects.
-        </p>
       </div>
 
       {/* Bento Grid Design Wrapper */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
+      <div className="flex justify-center w-full">
         
-        {/* Left Side: Main Auth Console Form (Bento Col-7) */}
-        <div className="md:col-span-7 bg-slate-900/60 border border-slate-850/80 rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden shadow-2xl">
+        {/* Main Auth Console Form */}
+        <div className="w-full max-w-md bg-slate-900/60 border border-slate-850/80 rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden shadow-2xl">
           {/* Subtle geometric glowing background */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/5 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -350,56 +343,10 @@ export default function AuthGate({ teams, onLogin, onCancel, initialRole = 'team
             </form>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-slate-850/60 text-[10px] text-slate-500 font-mono text-center flex items-center justify-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>RSA-256 HMAC SECURED END-TO-END</span>
-          </div>
+
         </div>
 
-        {/* Right Side: Demo Sandbox Quick Login (Bento Col-5) */}
-        <div className="md:col-span-5 bg-slate-900/30 border border-slate-850/60 rounded-2xl p-5 flex flex-col justify-between space-y-6">
-          <div className="space-y-4">
-            <div>
-              <span className="text-[10px] font-mono text-indigo-400 uppercase tracking-widest block font-bold mb-1">Sandbox Environment</span>
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Fast-Pass Simulation Accounts</h3>
-              <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-                Test different perspective flows without manual setup. Select a pre-authorized security role below to log in instantly.
-              </p>
-            </div>
 
-            <div className="space-y-2.5">
-              {DEMO_ACCOUNTS.map((demo, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleQuickLogin(demo)}
-                  className="w-full bg-slate-950/60 hover:bg-indigo-950/20 border border-slate-850/60 hover:border-indigo-500/30 p-3 rounded-xl flex flex-col text-left transition-all cursor-pointer group"
-                >
-                  <div className="flex items-center justify-between w-full">
-                    <span className="text-xs font-semibold text-white group-hover:text-indigo-300 transition-colors">
-                      {demo.name}
-                    </span>
-                    <span className="text-[8px] font-mono uppercase bg-slate-900 group-hover:bg-indigo-500/15 text-slate-400 group-hover:text-indigo-300 px-1.5 py-0.5 rounded border border-slate-800 group-hover:border-indigo-500/20 font-bold">
-                      {demo.role}
-                    </span>
-                  </div>
-                  <div className="text-[10px] text-slate-500 font-mono mt-1 flex items-center justify-between w-full">
-                    <span>{demo.email}</span>
-                    <span className="text-indigo-400 group-hover:translate-x-1 transition-transform flex items-center gap-0.5">
-                      Fast Fill <Zap className="w-2.5 h-2.5" />
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-slate-950/80 rounded-xl p-3.5 border border-slate-850/50 space-y-2">
-            <span className="text-[9px] font-mono text-slate-500 uppercase font-bold block">Why Authentication Matters?</span>
-            <p className="text-[10px] text-slate-400 leading-relaxed">
-              HackProof AI maps verified code contributions to specific cryptographic wallets, ensuring no double-agents or unauthorized code pushers manipulate evaluations.
-            </p>
-          </div>
-        </div>
 
       </div>
     </div>
