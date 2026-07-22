@@ -245,7 +245,7 @@ export default function App() {
               } />
               <Route path="/blockchain" element={
                 <PrivateRoute allowedRoles={['team', 'judge', 'organizer']}>
-                  <BlockchainExplorer />
+                  <BlockchainExplorer teams={teams} />
                 </PrivateRoute>
               } />
               <Route path="/judge" element={
