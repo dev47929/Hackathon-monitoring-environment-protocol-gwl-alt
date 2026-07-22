@@ -101,3 +101,42 @@ ${args.presentationTranscript}
 
 Cross-reference each claim against the transcript and commits. Return the JSON array of results (one entry per claim).`;
 }
+
+export const commitAnalysisSystemPrompt = `You are a Senior Security Engineer & Technical Auditor.
+Your task is to analyze the provided Git commit diff in the context of the project overview (README).
+Provide a concise, 3-5 sentence breakdown summarizing:
+1. Key technical changes introduced by this commit.
+2. How this commit contributes to the project's overall architectural goals.
+3. Potential risks, code quality notes, or architectural anomalies.
+
+Output plain concise text only. Do NOT use markdown code blocks or raw JSON wrapping.`;
+
+export function buildCommitAnalysisUserPrompt(
+  projectOverview: string,
+  diff: string,
+  meta: { hash: string; message: string; author: string; additions: number; deletions: number; changedFiles: number | string[] }
+): string {
+  const truncatedOverview = projectOverview.length > 4000 ? projectOverview.slice(0, 4000) + '\n...[OVERVIEW TRUNCATED]...' : projectOverview;
+  const truncatedDiff = diff.length > 30000 ? diff.slice(0, 30000) + '\n...[DIFF TRUNCATED]...' : diff;
+  const fileCount = Array.isArray(meta.changedFiles) ? meta.changedFiles.length : meta.changedFiles;
+  const filesList = Array.isArray(meta.changedFiles) ? meta.changedFiles.join(', ') : `${fileCount} files`;
+
+  return `Project Overview / README Context:
+"""
+${truncatedOverview || '(No project overview provided)'}
+"""
+
+Commit Details:
+- Hash: ${meta.hash}
+- Author: ${meta.author}
+- Message: ${meta.message}
+- Additions: +${meta.additions} / Deletions: -${meta.deletions}
+- Changed Files (${fileCount}): ${filesList}
+
+Commit Diff / Patch:
+\`\`\`diff
+${truncatedDiff || '(No diff patch available)'}
+\`\`\`
+
+Provide the 3-5 sentence plain-text technical analysis as instructed.`;
+}

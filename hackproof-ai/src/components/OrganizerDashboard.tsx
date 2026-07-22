@@ -21,6 +21,7 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
   const [newTeamUrl, setNewTeamUrl] = useState('');
   const [newTeamLead, setNewTeamLead] = useState('');
   const [newTechStack, setNewTechStack] = useState('');
+  const [newReadmeContent, setNewReadmeContent] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
 
   // User accounts form state
@@ -55,6 +56,7 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
         techStack,
         members: [newTeamLead ? `${newTeamLead} (Lead)` : 'Anonymous Hacker (Lead)'],
         description,
+        readmeContent: newReadmeContent.slice(0, 10000),
       });
 
       const minimalTeam: Team = {
@@ -67,6 +69,7 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
         progress: response.data.progress,
         overallRiskScore: 0,
         description,
+        readmeContent: newReadmeContent.slice(0, 10000),
         commits: [],
         claimedFeatures: [],
         interviewQuestions: [],
@@ -112,6 +115,7 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
     setNewTeamName('');
     setNewTeamUrl('');
     setNewTeamLead('');
+    setNewReadmeContent('');
     setIsRegistering(false);
     setActiveTab('analytics');
   };
@@ -431,7 +435,22 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
                     />
                   </div>
 
-
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-mono text-slate-400 block uppercase">Project Overview / README Context</label>
+                      <span className={`text-[11px] font-mono ${newReadmeContent.length > 9500 ? 'text-amber-400' : 'text-slate-500'}`}>
+                        {newReadmeContent.length} / 10,000
+                      </span>
+                    </div>
+                    <textarea
+                      rows={4}
+                      maxLength={10000}
+                      placeholder="Paste project README or architectural overview here to give Gemini AI rich context when auditing commit diffs..."
+                      value={newReadmeContent}
+                      onChange={(e) => setNewReadmeContent(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-slate-750 font-sans resize-y"
+                    />
+                  </div>
 
                   <button
                     type="submit"

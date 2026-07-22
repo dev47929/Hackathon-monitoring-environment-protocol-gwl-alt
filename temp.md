@@ -1,76 +1,196 @@
-Prompt 1 — Database layer (schema + repository methods)
+# AI Commit Analysis Feature — Refined Implementation Prompts
 
-In backend/prisma/schema.prisma, add a CommitAnalysis model following the Commit/ActivityLog pattern:
+This document provides step-by-step developer prompts to implement the **Commit AI Analysis** feature for the Hackathon Monitoring Environment. Each prompt is tailored precisely to the project's architecture, database conventions (Prisma + in-memory dual fallback), Gemini service layer, ESM import patterns, and React/Tailwind frontend components.
 
-id (String @id)
-commitHash (String @unique)
-teamId (String)
-analysis (String)
-model (String, e.g. "gemini-2.5-flash")
-createdAt (DateTime @default(now()))
+---
 
-Add team Team @relation(fields: [teamId], references: [id]) and the inverse relation on Team only if the existing models in this file use explicit relations elsewhere — check Commit's teamId field first and mirror whatever pattern (relation vs. plain string FK) it already uses, don't introduce a new convention.
+## Prompt 1 — Database Layer & Schema Updates
 
-Add readmeContent String @default("") to Team if missing.
+### Objective
+Extend the database schema, backend TypeScript interfaces, data repository methods, API validation, and frontend types to support storing and retrieving commit analysis records and team README context.
 
-In backend/src/types/index.ts: add CommitAnalysisRecord matching the schema, and readmeContent?: string on Team.
+### Target Files
+- [schema.prisma](file:///d:/Gitshit/Hackathon-monitoring-environment-protocol-gwl-alt/backend/prisma/schema.prisma)
+- [index.ts](file:///d:/Gitshit/Hackathon-monitoring-environment-protocol-gwl-alt/backend/src/types/index.ts)
+- [repository.ts](file:///d:/Gitshit/Hackathon-monitoring-environment-protocol-gwl-alt/backend/src/data/repository.ts)
+- [teamsRouter.ts](file:///d:/Gitshit/Hackathon-monitoring-environment-protocol-gwl-alt/backend/src/routes/teamsRouter.ts)
+- [types.ts](file:///d:/Gitshit/Hackathon-monitoring-environment-protocol-gwl-alt/hackproof-ai/src/types.ts)
+- [OrganizerDashboard.tsx](file:///d:/Gitshit/Hackathon-monitoring-environment-protocol-gwl-alt/hackproof-ai/src/components/OrganizerDashboard.tsx)
 
-In backend/src/data/repository.ts:
+### Steps & Technical Directives
 
-mapCommitAnalysis mapper, memCommitAnalyses: Map<string, CommitAnalysisRecord> fallback.
-findCommitAnalysisByHash(hash) — in-memory first, then Prisma findUnique.
-addCommitAnalysis(data) — upsert, not create. Two concurrent requests can both miss the cache check and both try to analyze the same commit; a plain create will throw a unique-constraint error on the loser. Use prisma.commitAnalysis.upsert({ where: { commitHash }, create: data, update: {} }) (keep the first result, don't overwrite) and the same read-check-then-set pattern on the in-memory map.
-Update mapTeam/addTeam to include readmeContent.
-Add memCommitAnalyses.clear() and prisma.commitAnalysis.deleteMany() to resetState.
+1. **Prisma Schema Update ([schema.prisma](file:///d:/Gitshit/Hackathon-monitoring-environment-protocol-gwl-alt/backend/prisma/schema.prisma))**:
+   - Add a `CommitAnalysis` model following existing relational patterns:
+     ```prisma
+     model CommitAnalysis {
+       id         String   @id @default(uuid())
+       commitHash String   @unique
+       teamId     String
+       analysis   String
+       model      String
+       createdAt  DateTime @default(now())
+       team       Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+       commit     Commit   @relation(fields: [commitHash], references: [hash], onDelete: Cascade)
+     }
+     ```
+   - Mirror explicit relations: add `commitAnalyses CommitAnalysis[]` to `model Team` and `commitAnalysis CommitAnalysis?` to `model Commit`.
+   - Add `readmeContent String @default("")` to `model Team`.
 
-In backend/src/routes/teamsRouter.ts: add readmeContent: z.string().max(10000).optional().default('') to both schemas, pass through as before.
+2. **Backend & Frontend Types ([index.ts](file:///d:/Gitshit/Hackathon-monitoring-environment-protocol-gwl-alt/backend/src/types/index.ts) & [types.ts](file:///d:/Gitshit/Hackathon-monitoring-environment-protocol-gwl-alt/hackproof-ai/src/types.ts))**:
+   - In both type files, export the `CommitAnalysisRecord` interface:
+     ```ts
+     export interface CommitAnalysisRecord {
+       id: string;
+       commitHash: string;
+       teamId: string;
+       analysis: string;
+       model: string;
+       createdAt: string;
+     }
+     ```
+   - Update the `Team` interface in both files to include `readmeContent?: string;`.
 
-In hackproof-ai/src/types.ts: mirror the readmeContent? and CommitAnalysisRecord additions.
+3. **Data Repository Layer ([repository.ts](file:///d:/Gitshit/Hackathon-monitoring-environment-protocol-gwl-alt/backend/src/data/repository.ts))**:
+   - Add in-memory fallback store: `const memCommitAnalyses = new Map<string, CommitAnalysisRecord>()`.
+   - Implement `mapCommitAnalysis(row: any): CommitAnalysisRecord`.
+   - Implement `findCommitAnalysisByHash(hash: string): Promise<CommitAnalysisRecord | undefined>`:
+     - Check `memCommitAnalyses.get(hash)` first.
+     - If missing in memory, query `prisma.commitAnalysis.findUnique({ where: { commitHash: hash } })`. If found, store in `memCommitAnalyses` and return the mapped record.
+   - Implement concurrency-safe `addCommitAnalysis(data: Omit<CommitAnalysisRecord, 'id' | 'createdAt'> & { id?: string; createdAt?: string }): Promise<CommitAnalysisRecord>`:
+     - Use `prisma.commitAnalysis.upsert({ where: { commitHash: data.commitHash }, create: recordData, update: {} })` to prevent unique-constraint violations when concurrent requests analyze the same commit.
+     - Mirror read-check-then-set pattern on `memCommitAnalyses`.
+   - Update `mapTeam` and `addTeam` to handle `readmeContent`.
+   - Update `resetState()` to call `memCommitAnalyses.clear()` and `if (prisma.commitAnalysis) await prisma.commitAnalysis.deleteMany()`.
 
-In OrganizerDashboard.tsx: add the README textarea as described, but cap it client-side to 10000 chars with a visible counter (matching the Zod max) so registration doesn't silently fail on paste of a huge file.
+4. **Teams Router ([teamsRouter.ts](file:///d:/Gitshit/Hackathon-monitoring-environment-protocol-gwl-alt/backend/src/routes/teamsRouter.ts))**:
+   - Update team creation/modification Zod schemas to include:
+     `readmeContent: z.string().max(10000).optional().default('')`.
+   - Pass through `readmeContent` in team creation and update handlers.
 
-Prompt 2 — Gemini analysis service
+5. **Organizer Dashboard ([OrganizerDashboard.tsx](file:///d:/Gitshit/Hackathon-monitoring-environment-protocol-gwl-alt/hackproof-ai/src/components/OrganizerDashboard.tsx))**:
+   - Add a "Project Overview / README" textarea in the team setup form.
+   - Cap client-side entry at 10,000 characters with a live visual counter (e.g. `${readmeContent.length} / 10,000`) matching the Zod max limit.
 
-In geminiPrompts.ts, add commitAnalysisSystemPrompt (text as given) and buildCommitAnalysisUserPrompt(projectOverview, diff, meta), truncating diff at 30000 chars and truncating projectOverview at 4000 chars — an unbounded README plus a large diff can blow past the model's context window and silently degrade output quality rather than error.
+---
 
-In geminiService.ts:
+## Prompt 2 — Gemini Analysis Service Integration
 
-ts
-async getCommitAnalysis(
-  projectOverview: string,
-  diff: string,
-  commitMeta: { hash: string; message: string; author: string; additions: number; deletions: number; changedFiles: number }
-): Promise<{ analysis: string; model: string }>
-Build the prompt, call this.generate(config.gemini.commitModel, commitAnalysisSystemPrompt, userPrompt).
-Wrap the call in try/catch explicitly (don't rely on the caller to catch) so the fallback path is guaranteed even if generate throws instead of returning empty.
-On failure or empty response, return a fallback string built from commitMeta (stats + "AI analysis was unavailable"), and set model: 'fallback' — not config.gemini.commitModel — so downstream code and the UI can tell a real analysis from a fallback (this matters once it's cached: you don't want a fallback string permanently cached as if it were a real model result).
-On success, trim and cap the returned analysis to a sane length (e.g. 2000 chars) before returning, in case the model ignores the "3-5 sentences" instruction.
-Pure function — no DB access, as specified.
-Prompt 3 — API route with caching
+### Objective
+Create system and user prompts for commit deep analysis and integrate the AI generation method in `GeminiService` with heuristic fallbacks and context truncation.
 
-In commitsRouter.ts, add POST /api/:hash/analyze:
+### Target Files
+- [geminiPrompts.ts](file:///d:/Gitshit/Hackathon-monitoring-environment-protocol-gwl-alt/backend/src/services/geminiPrompts.ts)
+- [geminiService.ts](file:///d:/Gitshit/Hackathon-monitoring-environment-protocol-gwl-alt/backend/src/services/geminiService.ts)
 
-Validate hash is non-empty (reject obviously malformed input early with a 400, not a DB lookup).
-repo.findCommitAnalysisByHash(hash) — if found and model !== 'fallback', return { analysis, cached: true, model } and return early. If the cached entry is a fallback result, don't serve it as final — fall through and retry the analysis, so a transient Gemini outage doesn't permanently poison the cache for that commit.
-repo.findCommitByHash(hash) — notFound if missing.
-Look up the commit's team via commit.teamId (the original prompt jumps straight to team.readmeContent without ever fetching team — add repo.findTeamById(commit.teamId), notFound if missing).
-overview = team.readmeContent ?? team.description ?? ''.
-Call geminiService.getCommitAnalysis(...); wrap in try/catch → internal(...) on throw.
-Persist via repo.addCommitAnalysis(...) (upsert, per Prompt 1) only if model !== 'fallback' — don't cache failures.
-Respond { analysis, cached: false, model }.
+### Steps & Technical Directives
 
-Add basic rate limiting or at least note the gap: this endpoint calls a paid external API and only has optionalAuth, meaning any unauthenticated caller can trigger unlimited Gemini calls per commit hash before the cache is warm. At minimum, apply whatever rate-limit middleware other write-ish routes in this codebase use; if none exists, flag that as a follow-up rather than silently shipping an open-metered endpoint.
+1. **Prompt Builders ([geminiPrompts.ts](file:///d:/Gitshit/Hackathon-monitoring-environment-protocol-gwl-alt/backend/src/services/geminiPrompts.ts))**:
+   - Add `commitAnalysisSystemPrompt`:
+     ```ts
+     export const commitAnalysisSystemPrompt = `You are a Senior Security Engineer & Technical Auditor.
+     Your task is to analyze the provided Git commit diff in the context of the project overview (README).
+     Provide a concise, 3-5 sentence breakdown summarizing:
+     1. Key technical changes introduced by this commit.
+     2. How this commit contributes to the project's overall architectural goals.
+     3. Potential risks, code quality notes, or architectural anomalies.
 
-Prompt 4 — Frontend button + display component
+     Output plain concise text only. Do NOT use markdown code blocks or raw JSON wrapping.`;
+     ```
+   - Add `buildCommitAnalysisUserPrompt(projectOverview: string, diff: string, meta: { hash: string; message: string; author: string; additions: number; deletions: number; changedFiles: number | string[] })`:
+     - Truncate `projectOverview` at 4,000 characters (`projectOverview.slice(0, 4000)`).
+     - Truncate `diff` at 30,000 characters (`diff.slice(0, 30000)`).
+     - Format and return structured text with metadata, project overview, and raw diff.
 
-CommitsAPI.analyzeCommit as given, but throw/propagate a typed error so the component can distinguish "network failure" from "server returned an error payload."
+2. **Gemini Service Method ([geminiService.ts](file:///d:/Gitshit/Hackathon-monitoring-environment-protocol-gwl-alt/backend/src/services/geminiService.ts))**:
+   - Implement `getCommitAnalysis`:
+     ```ts
+     async getCommitAnalysis(
+       projectOverview: string,
+       diff: string,
+       commitMeta: { hash: string; message: string; author: string; additions: number; deletions: number; changedFiles: number | string[] }
+     ): Promise<{ analysis: string; model: string }>
+     ```
+   - Call `this.generate(config.gemini.commitModel, commitAnalysisSystemPrompt, userPrompt)`.
+   - Explicitly wrap in a `try/catch` block so failures return gracefully.
+   - **Fallback Handling**: On API error or empty output, construct a deterministic summary string:
+     `"[Fallback Summary] Commit '${commitMeta.message}' by ${commitMeta.author} modified ${changedCount} file(s) (+${commitMeta.additions}/-${commitMeta.deletions}). AI deep analysis was temporarily unavailable."`
+     Return `{ analysis: fallbackString, model: 'fallback' }` (using `'fallback'` as the model name ensures the route handler will not permanently cache API failures).
+   - **Success Output**: On valid response, trim and cap the result at 2,000 characters before returning `{ analysis, model: config.gemini.commitModel }`.
 
-CommitAnalysisPanel.tsx:
+---
 
-Props and states as given, plus an error: string | null state instead of overloading analysis with the error text — keeps "no analysis yet" vs. "analysis failed" vs. "analysis succeeded" as three distinct render states rather than string-sniffing.
-On mount with existingAnalysis, also treat an empty string as "not yet analyzed" (don't render the box for existingAnalysis === ''), since (commit as any).analysis will likely be undefined or '' for most commits, not just missing.
-On click: loading = true, clear any previous error; on success set analysis/cached; on failure set error and leave analysis null so the button can be shown again to retry, rather than permanently displaying "Analysis failed."
-Render the retry affordance: if error is set, show the message plus the same button re-enabled, not a dead-end string.
-Escape/plain-render analysis as text (it's already plain-text per the system prompt, but don't dangerouslySetInnerHTML it just in case the model ignores the "no markdown" instruction and emits something odd).
+## Prompt 3 — API Route with Smart Caching
 
-In TeamDashboard.tsx / JudgeDashboard.tsx: same placement as specified, passing existingAnalysis={(commit as any).analysis} — but since Prompt 1's CommitAnalysisRecord is a separate table now, commit.analysis won't naturally exist on the Commit object returned by the list endpoint unless the commits list route is updated to join it in. Either: (a) have the commits-list endpoint left-join the cached analysis and attach it as commit.analysis, or (b) drop existingAnalysis entirely and let the panel always start from the button state, relying on the /analyze route's own cache check to make the second click instant. Cheaper to do (b) first and add (a) as a follow-up.
+### Objective
+Expose a backend endpoint `POST /api/commits/:hash/analyze` to handle commit analysis requests, returning cached results when available and preventing cache poisoning during transient AI outages.
+
+### Target Files
+- [commitsRouter.ts](file:///d:/Gitshit/Hackathon-monitoring-environment-protocol-gwl-alt/backend/src/routes/commitsRouter.ts)
+
+### Steps & Technical Directives
+
+1. **Route Endpoint Setup**:
+   - Add route handler `commitsRouter.post('/:hash/analyze', optionalAuth, asyncHandler(async (req, res) => ...))`.
+
+2. **Validation & Cache Lookup**:
+   - Validate `hash` param (reject empty or malformed hash early with `badRequest('Invalid commit hash.')`).
+   - Query cache via `repo.findCommitAnalysisByHash(hash)`.
+   - **Cache Check Rule**: If cached record exists AND `cached.model !== 'fallback'`, return immediately:
+     ```json
+     { "analysis": cached.analysis, "cached": true, "model": cached.model }
+     ```
+   - If `cached.model === 'fallback'`, bypass cache and retry Gemini analysis to recover from transient outages.
+
+3. **Context Assembly & Execution**:
+   - Fetch commit: `repo.findCommitByHash(hash)`. Throw `notFound('Commit not found.')` if missing.
+   - Fetch team: `repo.getTeamById(commit.teamId)`. Throw `notFound('Team not found.')` if missing.
+   - Determine overview context: `const overview = team.readmeContent?.trim() || team.description?.trim() || ''`.
+   - Resolve diff: extract diff patch from incoming commit or GitHub service.
+   - Execute analysis: `const result = await geminiService.getCommitAnalysis(overview, diff, commitMeta)`.
+
+4. **Persistence & Response**:
+   - Only call `repo.addCommitAnalysis(...)` if `result.model !== 'fallback'` (do not cache failures).
+   - Return response:
+     ```json
+     { "analysis": result.analysis, "cached": false, "model": result.model }
+     ```
+
+5. **Security & Rate Limiting Guidelines**:
+   - Because `optionalAuth` permits public invocation, apply rate limiting middleware to prevent unauthorized API quota consumption.
+
+---
+
+## Prompt 4 — Frontend Interactive Analysis Component & Dashboards
+
+### Objective
+Create a reusable React UI component `CommitAnalysisPanel.tsx` that provides a premium interactive interface for triggering, viewing, and retrying AI commit analyses.
+
+### Target Files
+- [api.ts](file:///d:/Gitshit/Hackathon-monitoring-environment-protocol-gwl-alt/hackproof-ai/src/services/api.ts) (or API layer helper)
+- [NEW] [CommitAnalysisPanel.tsx](file:///d:/Gitshit/Hackathon-monitoring-environment-protocol-gwl-alt/hackproof-ai/src/components/CommitAnalysisPanel.tsx)
+- [TeamDashboard.tsx](file:///d:/Gitshit/Hackathon-monitoring-environment-protocol-gwl-alt/hackproof-ai/src/components/TeamDashboard.tsx)
+- [JudgeDashboard.tsx](file:///d:/Gitshit/Hackathon-monitoring-environment-protocol-gwl-alt/hackproof-ai/src/components/JudgeDashboard.tsx)
+
+### Steps & Technical Directives
+
+1. **API Client Helper ([api.ts](file:///d:/Gitshit/Hackathon-monitoring-environment-protocol-gwl-alt/hackproof-ai/src/services/api.ts))**:
+   - Add `analyzeCommit(hash: string): Promise<{ analysis: string; cached: boolean; model: string }>` to execute the API call and throw structured errors on failure.
+
+2. **Commit Analysis Panel Component ([CommitAnalysisPanel.tsx](file:///d:/Gitshit/Hackathon-monitoring-environment-protocol-gwl-alt/hackproof-ai/src/components/CommitAnalysisPanel.tsx))**:
+   - Define Component Props:
+     ```ts
+     interface CommitAnalysisPanelProps {
+       commitHash: string;
+       existingAnalysis?: string;
+       onAnalysisComplete?: (analysis: string) => void;
+     }
+     ```
+   - Manage 4 distinct render states:
+     1. **Unanalyzed**: Action button ("⚡ Analyze Commit with Gemini AI").
+     2. **Loading**: Animated spinner with text ("Analyzing commit diff & project context...").
+     3. **Error**: Alert container with error message and a "Retry Analysis" button.
+     4. **Success**: Glassmorphism dark-card displaying plain-text analysis (rendered in `<p className="whitespace-pre-wrap">`), model badge (e.g. `gemini-2.5-flash` or `Cached`), and a copy button.
+   - Treat empty strings or `undefined` for `existingAnalysis` as unanalyzed.
+
+3. **Dashboard Integration ([TeamDashboard.tsx](file:///d:/Gitshit/Hackathon-monitoring-environment-protocol-gwl-alt/hackproof-ai/src/components/TeamDashboard.tsx) & [JudgeDashboard.tsx](file:///d:/Gitshit/Hackathon-monitoring-environment-protocol-gwl-alt/hackproof-ai/src/components/JudgeDashboard.tsx))**:
+   - Embed `<CommitAnalysisPanel commitHash={commit.hash} />` inside expanded commit rows or commit details drawers in both Team and Judge dashboards.

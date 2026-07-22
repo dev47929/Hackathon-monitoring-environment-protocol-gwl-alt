@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Team, Commit, ActivityLog } from '../types';
 import { CommitsAPI, DemoAuditAPI, TeamsAPI } from '../services/api';
+import { CommitAnalysisPanel } from './CommitAnalysisPanel';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Trophy, ShieldAlert, CheckCircle2, AlertOctagon, Terminal, Play, 
@@ -481,6 +482,9 @@ ${currentTeam.interviewQuestions.map((q, idx) => `**Q${idx + 1}: ${q.question}**
                             <span>Line changes: <strong className="text-emerald-400">+{commit.additions}</strong> / <strong className="text-rose-400">-{commit.deletions}</strong></span>
                           </div>
                         </div>
+
+                        {/* Deep AI Analysis Panel */}
+                        <CommitAnalysisPanel commitHash={commit.hash} />
 
                         {/* Blockchain block receipt */}
                         <div className="flex items-center justify-between text-xs font-mono bg-slate-950/40 border border-slate-850/40 px-3 py-1.5 rounded-lg text-slate-400">

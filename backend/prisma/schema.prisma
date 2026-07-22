@@ -7,45 +7,59 @@ generator client {
 }
 
 model Team {
-  id                 String    @id
+  id                 String           @id
   name               String
-  repoUrl            String    @unique
-  avatar             String    @default("")
+  repoUrl            String           @unique
+  avatar             String           @default("")
   techStack          String[]
   members            String[]
-  progress           Int       @default(0)
-  overallRiskScore   Int       @default(0)
-  description        String    @default("")
-  claimedFeatures    Json      @default("[]")
-  interviewQuestions Json      @default("[]")
+  progress           Int              @default(0)
+  overallRiskScore   Int              @default(0)
+  description        String           @default("")
+  readmeContent      String           @default("")
+  claimedFeatures    Json             @default("[]")
+  interviewQuestions Json             @default("[]")
   commits            Commit[]
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  commitAnalyses     CommitAnalysis[]
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
 }
 
 model Commit {
-  hash                String        @id
+  hash                String          @id
   teamId              String
-  team                Team          @relation(fields: [teamId], references: [id])
+  team                Team            @relation(fields: [teamId], references: [id])
   timestamp           String
   author              String
   message             String
   changedFiles        String[]
-  additions           Int           @default(0)
-  deletions           Int           @default(0)
-  aiSummary           String        @default("")
-  featureEvolution    String        @default("")
-  category            String        @default("other")
-  blockchainTx        String        @default("")
-  blockchainStatus    String        @default("pending")
-  isSuspicious        Boolean       @default(false)
+  additions           Int             @default(0)
+  deletions           Int             @default(0)
+  aiSummary           String          @default("")
+  featureEvolution    String          @default("")
+  category            String          @default("other")
+  blockchainTx        String          @default("")
+  blockchainStatus    String          @default("pending")
+  isSuspicious        Boolean         @default(false)
   suspiciousReason    String?
-  riskScore           Int           @default(0)
+  riskScore           Int             @default(0)
   justification       String?
-  justificationStatus String        @default("none")
+  justificationStatus String          @default("none")
   blockNumber         Int?
   eventHash           String?
-  createdAt           DateTime      @default(now())
+  commitAnalysis      CommitAnalysis?
+  createdAt           DateTime        @default(now())
+}
+
+model CommitAnalysis {
+  id         String   @id @default(uuid())
+  commitHash String   @unique
+  teamId     String
+  analysis   String
+  model      String
+  createdAt  DateTime @default(now())
+  team       Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  commit     Commit   @relation(fields: [commitHash], references: [hash], onDelete: Cascade)
 }
 
 model User {

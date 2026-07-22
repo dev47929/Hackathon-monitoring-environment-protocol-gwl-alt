@@ -22,6 +22,7 @@ const registerSchema = z.object({
   techStack: z.array(z.string()).min(1).max(20),
   members: z.array(z.string()).min(1).max(20),
   description: z.string().max(2000).optional().default(''),
+  readmeContent: z.string().max(10000).optional().default(''),
 })
 
 const patchSchema = z
@@ -32,6 +33,7 @@ const patchSchema = z
     members: z.array(z.string()).max(20).optional(),
     progress: z.number().min(0).max(100).optional(),
     description: z.string().max(2000).optional(),
+    readmeContent: z.string().max(10000).optional(),
     claimedFeatures: z
       .array(
         z.object({
@@ -87,6 +89,7 @@ teamsRouter.post('/', requireAuth, requireRole(['team', 'organizer']), asyncHand
     commits: [],
     overallRiskScore: 0,
     description: body.description,
+    readmeContent: body.readmeContent,
     claimedFeatures: buildClaimedFeatures(body.techStack, body.description),
     interviewQuestions: [],
   }

@@ -6,6 +6,7 @@ import { optionalAuth, requireAuth, requireRole } from '../middleware/auth.js'
 import * as repo from '../data/repository.js'
 import { config } from '../config/index.js'
 import { GitHubService, githubService } from '../services/githubService.js'
+import { geminiService } from '../services/geminiService.js'
 import { auditAndAnchorCommit } from '../services/auditPipeline.js'
 import { normalizeWebhookPayload, type NormalizedWebhookInput } from '../middleware/webhook.js'
 import type { Team } from '../types/index.js'
@@ -128,5 +129,72 @@ commitsRouter.patch('/:hash/review', requireAuth, requireRole(['judge']), asyncH
     status: 'success',
     hash,
     newOverallRiskScore: newScore,
+  })
+}))
+
+commitsRouter.post('/:hash/analyze', optionalAuth, asyncHandler(async (req, res) => {
+  const { hash } = req.params
+  if (!hash || typeof hash !== 'string' || hash.trim().length < 3) {
+    throw badRequest('Invalid commit hash provided.')
+  }
+
+  // 1. Check cache first (ignore fallback results)
+  const cached = await repo.findCommitAnalysisByHash(hash)
+  if (cached && cached.model !== 'fallback') {
+    res.json({
+      analysis: cached.analysis,
+      cached: true,
+      model: cached.model,
+    })
+    return
+  }
+
+  // 2. Resolve commit & team
+  const existing = await repo.findCommitByHash(hash)
+  if (!existing) {
+    throw notFound(`Commit ${hash} not found.`)
+  }
+
+  const { commit, team } = existing
+  const overview = team.readmeContent?.trim() || team.description?.trim() || ''
+
+  // 3. Resolve git diff patch if available
+  let diff = ''
+  if (commit.changedFiles && commit.changedFiles.length > 0) {
+    if (githubService.isConfigured()) {
+      try {
+        const parsed = GitHubService.parseRepoUrl(team.repoUrl)
+        const detail = await githubService.fetchCommitDetail(parsed.owner, parsed.repo, commit.hash)
+        diff = (detail.files || []).map((f) => (f.patch ? `--- ${f.filename}\n+++ ${f.filename}\n${f.patch}` : '')).filter(Boolean).join('\n\n')
+      } catch {
+        // ignore diff fetch error
+      }
+    }
+  }
+
+  // 4. Perform Gemini AI analysis
+  const result = await geminiService.getCommitAnalysis(overview, diff, {
+    hash: commit.hash,
+    message: commit.message,
+    author: commit.author,
+    additions: commit.additions,
+    deletions: commit.deletions,
+    changedFiles: commit.changedFiles,
+  })
+
+  // 5. Persist only if not fallback
+  if (result.model !== 'fallback') {
+    await repo.addCommitAnalysis({
+      commitHash: commit.hash,
+      teamId: team.id,
+      analysis: result.analysis,
+      model: result.model,
+    })
+  }
+
+  res.json({
+    analysis: result.analysis,
+    cached: false,
+    model: result.model,
   })
 }))

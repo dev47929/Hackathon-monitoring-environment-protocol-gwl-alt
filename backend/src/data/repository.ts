@@ -1,5 +1,6 @@
-import type { Team, Commit, ActivityLog, HackathonStats, JustificationStatus, ClaimedFeature, InterviewQuestion, User } from '../types/index.js'
+import type { Team, Commit, ActivityLog, HackathonStats, JustificationStatus, ClaimedFeature, InterviewQuestion, User, CommitAnalysisRecord } from '../types/index.js'
 import { prisma } from './prisma.js'
+import { v4 as uuidv4 } from 'uuid'
 
 function mapTeam(t: any): Team {
   return {
@@ -12,9 +13,21 @@ function mapTeam(t: any): Team {
     progress: t.progress,
     overallRiskScore: t.overallRiskScore,
     description: t.description,
+    readmeContent: t.readmeContent ?? '',
     claimedFeatures: (t.claimedFeatures ?? []) as ClaimedFeature[],
     interviewQuestions: (t.interviewQuestions ?? []) as InterviewQuestion[],
     commits: (t.commits ?? []).map(mapCommit),
+  }
+}
+
+function mapCommitAnalysis(ca: any): CommitAnalysisRecord {
+  return {
+    id: ca.id,
+    commitHash: ca.commitHash,
+    teamId: ca.teamId,
+    analysis: ca.analysis,
+    model: ca.model,
+    createdAt: typeof ca.createdAt === 'string' ? ca.createdAt : ca.createdAt?.toISOString?.() ?? new Date().toISOString(),
   }
 }
 
@@ -49,6 +62,7 @@ const teamInclude = { commits: true }
 const memTeams = new Map<string, Team>()
 const memLogs: ActivityLog[] = []
 const memUsers = new Map<string, { id: string; email: string; name: string; password: string; role: string; createdAt: Date }>()
+const memCommitAnalyses = new Map<string, CommitAnalysisRecord>()
 
 export async function getAllTeams(): Promise<Team[]> {
   try {
@@ -105,6 +119,7 @@ export async function addTeam(team: Team): Promise<void> {
           progress: team.progress,
           overallRiskScore: team.overallRiskScore,
           description: team.description,
+          readmeContent: team.readmeContent ?? '',
           claimedFeatures: team.claimedFeatures as any,
           interviewQuestions: team.interviewQuestions as any,
         },
@@ -357,13 +372,78 @@ export async function findUserByEmail(email: string): Promise<{ id: string; emai
   return undefined
 }
 
+export async function findCommitAnalysisByHash(hash: string): Promise<CommitAnalysisRecord | undefined> {
+  const mem = memCommitAnalyses.get(hash)
+  if (mem) return mem
+  try {
+    if (prisma.commitAnalysis) {
+      const row = await prisma.commitAnalysis.findUnique({ where: { commitHash: hash } })
+      if (row) {
+        const mapped = mapCommitAnalysis(row)
+        memCommitAnalyses.set(hash, mapped)
+        return mapped
+      }
+    }
+  } catch {
+    // fallback
+  }
+  return undefined
+}
+
+export async function addCommitAnalysis(data: {
+  commitHash: string;
+  teamId: string;
+  analysis: string;
+  model: string;
+  id?: string;
+  createdAt?: string;
+}): Promise<CommitAnalysisRecord> {
+  const existing = memCommitAnalyses.get(data.commitHash)
+  if (existing) return existing
+
+  const record: CommitAnalysisRecord = {
+    id: data.id ?? 'analysis-' + uuidv4(),
+    commitHash: data.commitHash,
+    teamId: data.teamId,
+    analysis: data.analysis,
+    model: data.model,
+    createdAt: data.createdAt ?? new Date().toISOString(),
+  }
+  memCommitAnalyses.set(data.commitHash, record)
+
+  try {
+    if (prisma.commitAnalysis) {
+      const row = await prisma.commitAnalysis.upsert({
+        where: { commitHash: data.commitHash },
+        create: {
+          id: record.id,
+          commitHash: record.commitHash,
+          teamId: record.teamId,
+          analysis: record.analysis,
+          model: record.model,
+        },
+        update: {},
+      })
+      const mapped = mapCommitAnalysis(row)
+      memCommitAnalyses.set(data.commitHash, mapped)
+      return mapped
+    }
+  } catch (err) {
+    console.warn('[repository] Prisma addCommitAnalysis fallback:', err instanceof Error ? err.message : err)
+  }
+
+  return record
+}
+
 export async function resetState(): Promise<void> {
   memUsers.clear()
   memTeams.clear()
+  memCommitAnalyses.clear()
   memLogs.length = 0
   try {
     if (prisma.transaction) await prisma.transaction.deleteMany()
     if (prisma.block) await prisma.block.deleteMany()
+    if (prisma.commitAnalysis) await prisma.commitAnalysis.deleteMany()
     if (prisma.commit) await prisma.commit.deleteMany()
     if (prisma.activityLog) await prisma.activityLog.deleteMany()
     if (prisma.team) await prisma.team.deleteMany()

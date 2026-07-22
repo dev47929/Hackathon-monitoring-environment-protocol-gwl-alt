@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { GoogleGenAI } from '@google/genai';
 import { config } from '../config/index.js';
-import { commitAnalyzerSystemPrompt, interviewQuestionSystemPrompt, presentationVerifierSystemPrompt, buildCommitDiffUserPrompt, buildInterviewUserPrompt, buildPresentationUserPrompt } from './geminiPrompts.js';
+import { commitAnalyzerSystemPrompt, interviewQuestionSystemPrompt, presentationVerifierSystemPrompt, commitAnalysisSystemPrompt, buildCommitDiffUserPrompt, buildInterviewUserPrompt, buildPresentationUserPrompt, buildCommitAnalysisUserPrompt } from './geminiPrompts.js';
 import type { CommitAnalysis, InterviewQuestionAI, PresentationResult, Category, PresentationStatus, ClaimStatus } from '../types/index.js';
 
 interface GeminiResponse<T> {
@@ -255,6 +255,28 @@ export class GeminiService {
     if (/\.sql|schema\.sql|migration|db\/|database/.test(all)) return 'database';
     if (/\.tsx?|\.jsx?|component|src\/|css|tailwind|index\.html|vite/.test(all)) return 'frontend';
     return 'other';
+  }
+
+  async getCommitAnalysis(
+    projectOverview: string,
+    diff: string,
+    commitMeta: { hash: string; message: string; author: string; additions: number; deletions: number; changedFiles: number | string[] }
+  ): Promise<{ analysis: string; model: string }> {
+    const fileCount = Array.isArray(commitMeta.changedFiles) ? commitMeta.changedFiles.length : commitMeta.changedFiles;
+    const fallbackText = `[Fallback Summary] Commit '${commitMeta.message}' by ${commitMeta.author || 'author'} modified ${fileCount} file(s) (+${commitMeta.additions}/-${commitMeta.deletions}). AI deep analysis was temporarily unavailable.`;
+
+    try {
+      const userPrompt = buildCommitAnalysisUserPrompt(projectOverview, diff, commitMeta);
+      const { data, error } = await this.generate(config.gemini.commitModel, commitAnalysisSystemPrompt, userPrompt);
+      if (error || !data || !data.trim()) {
+        return { analysis: fallbackText, model: 'fallback' };
+      }
+      const trimmed = data.trim().slice(0, 2000);
+      return { analysis: trimmed, model: config.gemini.commitModel };
+    } catch (err) {
+      console.warn('[gemini] getCommitAnalysis exception:', err instanceof Error ? err.message : err);
+      return { analysis: fallbackText, model: 'fallback' };
+    }
   }
 }
 

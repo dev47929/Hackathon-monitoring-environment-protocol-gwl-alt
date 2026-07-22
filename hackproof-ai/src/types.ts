@@ -32,6 +32,7 @@ export interface Team {
   commits: Commit[];
   overallRiskScore: number; // 0 to 100
   description: string;
+  readmeContent?: string;
   claimedFeatures: {
     id: string;
     claim: string;
@@ -117,5 +118,14 @@ export interface TransactionDetail {
 export interface BlockchainMode {
   mode: string;
   configured: boolean;
+}
+
+export interface CommitAnalysisRecord {
+  id: string;
+  commitHash: string;
+  teamId: string;
+  analysis: string;
+  model: string;
+  createdAt: string;
 }
 

@@ -83,6 +83,7 @@ export const TeamsAPI = {
     techStack: string[];
     members: string[];
     description: string;
+    readmeContent?: string;
   }): Promise<{ status: string; message: string; data: { id: string; name: string; progress: number; commitsCount: number } }> {
     return apiFetch(`${API_BASE}/api/teams`, {
       method: 'POST',
@@ -98,6 +99,7 @@ export const TeamsAPI = {
     members?: string[];
     progress?: number;
     description?: string;
+    readmeContent?: string;
     claimedFeatures?: {
       id: string;
       claim: string;
@@ -173,6 +175,13 @@ export const CommitsAPI = {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status })
+    });
+  },
+
+  async analyzeCommit(hash: string): Promise<{ analysis: string; cached: boolean; model: string }> {
+    return apiFetch(`${API_BASE}/api/${hash}/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
     });
   }
 };

@@ -59,6 +59,7 @@ export interface Team {
   commits: Commit[];
   overallRiskScore: number;
   description: string;
+  readmeContent?: string;
   claimedFeatures: ClaimedFeature[];
   interviewQuestions: InterviewQuestion[];
 }
@@ -108,6 +109,15 @@ export interface CommitAnalysis {
   riskScore: number;
   isSuspicious: boolean;
   suspiciousReason: string | null;
+}
+
+export interface CommitAnalysisRecord {
+  id: string;
+  commitHash: string;
+  teamId: string;
+  analysis: string;
+  model: string;
+  createdAt: string;
 }
 
 export interface InterviewQuestionAI {

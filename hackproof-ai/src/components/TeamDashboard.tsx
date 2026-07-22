@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Team, Commit, ActivityLog } from '../types';
 import { CommitsAPI } from '../services/api';
+import { CommitAnalysisPanel } from './CommitAnalysisPanel';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   GitBranch, GitCommit, GitPullRequest, Code, Plus, 
@@ -455,6 +456,9 @@ export default function TeamDashboard({ teams, selectedTeamId, onUpdateTeam, onA
                               <strong className="text-slate-500 not-italic">Feature Impact:</strong> {commit.featureEvolution}
                             </div>
                           </div>
+
+                          {/* Deep AI Analysis Panel */}
+                          <CommitAnalysisPanel commitHash={commit.hash} />
 
                           {/* Blockchain verification block */}
                           <div className="flex items-center justify-between text-[11px] font-mono bg-slate-950/40 border border-slate-850/30 px-3 py-1.5 rounded-lg">
