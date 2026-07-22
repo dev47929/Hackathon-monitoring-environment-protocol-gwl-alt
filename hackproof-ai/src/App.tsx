@@ -153,15 +153,15 @@ export default function App() {
 
       <FallbackBanner />
 
-      <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-slate-900 px-4 py-3 md:px-8">
+      <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-slate-900 px-4 py-2 md:px-8">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
           <div className="flex items-center justify-between md:justify-start gap-4">
             <button onClick={() => navigate('/')} className="flex items-center gap-2.5 text-left group cursor-pointer">
-              <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg group-hover:scale-105 transition-transform duration-200">
+              <div className="w-8 h-8 rounded-lg overflow-hidden shadow-lg group-hover:scale-105 transition-transform duration-200">
                 <img src="/logo.png" alt="HackProof AI Logo" className="w-full h-full object-cover" />
               </div>
               <div>
-                <h1 className="text-base font-extrabold text-white tracking-tight flex items-center gap-1 leading-none uppercase">
+                <h1 className="text-sm font-extrabold text-white tracking-tight flex items-center gap-1 leading-none uppercase">
                   HackProof <span className="text-indigo-400">AI</span>
                 </h1>
 
@@ -170,25 +170,25 @@ export default function App() {
           </div>
 
           <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
-            <div className="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-850">
+            <div className="flex items-center gap-1 bg-slate-900 p-0.5 rounded-lg border border-slate-850">
               <button onClick={() => navigate('/')}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-mono font-semibold transition-all cursor-pointer text-slate-400 hover:text-slate-200">
-                <Compass className="w-4 h-4" /> <span className="hidden sm:inline">Landing</span>
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-mono font-semibold transition-all cursor-pointer text-slate-400 hover:text-slate-200">
+                <Compass className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Landing</span>
               </button>
               <button onClick={() => navigate('/team/team-1')}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-mono font-semibold transition-all cursor-pointer text-slate-400 hover:text-slate-200">
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-mono font-semibold transition-all cursor-pointer text-slate-400 hover:text-slate-200">
                 <span className="hidden sm:inline">Team Hub</span>
               </button>
               <button onClick={() => navigate('/judge')}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-mono font-semibold transition-all cursor-pointer text-slate-400 hover:text-slate-200">
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-mono font-semibold transition-all cursor-pointer text-slate-400 hover:text-slate-200">
                 <span className="hidden sm:inline">Judge Cockpit</span>
               </button>
               <button onClick={() => navigate('/organizer')}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-mono font-semibold transition-all cursor-pointer text-slate-400 hover:text-slate-200">
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-mono font-semibold transition-all cursor-pointer text-slate-400 hover:text-slate-200">
                 <span className="hidden sm:inline">Organizer Control</span>
               </button>
               <button onClick={() => navigate('/blockchain')}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-mono font-semibold transition-all cursor-pointer text-slate-400 hover:text-slate-200">
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-mono font-semibold transition-all cursor-pointer text-slate-400 hover:text-slate-200">
                 <span className="hidden sm:inline">Blockchain</span>
               </button>
             </div>
@@ -196,19 +196,19 @@ export default function App() {
             <div className="flex items-center justify-end">
               {user === null ? (
                 <button onClick={() => navigate('/login')}
-                  className="w-full lg:w-auto flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-mono font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-all cursor-pointer shadow-md shadow-indigo-600/15 border border-indigo-500/20">
-                  <Lock className="w-3.5 h-3.5" /> <span>Sign In</span>
+                  className="w-full lg:w-auto flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-mono font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-all cursor-pointer shadow-md shadow-indigo-600/15 border border-indigo-500/20">
+                  <Lock className="w-3 h-3" /> <span>Sign In</span>
                 </button>
               ) : (
-                <div className="w-full lg:w-auto flex items-center justify-between lg:justify-start gap-2 bg-slate-900 border border-slate-800 p-1.5 pl-3 pr-2 rounded-xl">
+                <div className="w-full lg:w-auto flex items-center justify-between lg:justify-start gap-2 bg-slate-900 border border-slate-800 p-1 pl-2.5 pr-1.5 rounded-lg">
                   <div className="flex flex-col text-left">
-                    <span className="text-xs font-bold text-white leading-none max-w-[140px] truncate">{user.name}</span>
-                    <span className="text-[10px] font-mono uppercase text-indigo-400 font-extrabold tracking-wider mt-0.5">
+                    <span className="text-[11px] font-bold text-white leading-none max-w-[120px] truncate">{user.name}</span>
+                    <span className="text-[9px] font-mono uppercase text-indigo-400 font-extrabold tracking-wider mt-0.5">
                       {user.role === 'team' ? 'Hacker' : user.role}
                     </span>
                   </div>
                   <button type="button" onClick={authLogout}
-                    className="p-1 text-slate-500 hover:text-slate-300 font-mono text-xs cursor-pointer hover:bg-slate-950 rounded border border-transparent hover:border-slate-800 transition-colors"
+                    className="p-0.5 px-1 text-slate-500 hover:text-slate-300 font-mono text-[10px] cursor-pointer hover:bg-slate-950 rounded border border-transparent hover:border-slate-800 transition-colors"
                     title="Sign Out Session">Exit</button>
                 </div>
               )}
