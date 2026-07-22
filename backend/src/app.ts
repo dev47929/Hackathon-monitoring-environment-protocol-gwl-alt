@@ -17,9 +17,16 @@ import { blockchainService } from './services/blockchainService.js';
 const app = express();
 app.set('trust proxy', 1);
 
-app.disable('x-powered-by');
-app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
-app.use(cors({ origin: config.server.corsOrigin === '*' ? true : config.server.corsOrigin.split(','), methods: ['GET', 'POST', 'PATCH', 'PUT', 'OPTIONS'] }));
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
 
 const logFormat = config.server.isProd ? 'combined' : 'dev';
 app.use(morgan(logFormat));
