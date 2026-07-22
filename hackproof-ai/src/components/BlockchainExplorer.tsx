@@ -198,7 +198,7 @@ export default function BlockchainExplorer({ teams: propTeams }: BlockchainExplo
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search team name to jump to their ledger chain..."
+            placeholder="Search team name"
             className="w-full bg-slate-900 border border-slate-850 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500/60 font-mono"
           />
           {searchQuery && (
