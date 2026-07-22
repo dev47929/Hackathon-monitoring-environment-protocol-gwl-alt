@@ -2,7 +2,6 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
-import rateLimit from 'express-rate-limit';
 import { config } from './config/index.js';
 import { errorHandler, notFoundHandler } from './utils/errors.js';
 import { teamsRouter } from './routes/teamsRouter.js';
@@ -24,14 +23,6 @@ app.use(cors({ origin: config.server.corsOrigin === '*' ? true : config.server.c
 
 const logFormat = config.server.isProd ? 'combined' : 'dev';
 app.use(morgan(logFormat));
-
-app.use(rateLimit({
-  windowMs: 60 * 1000,
-  limit: 200,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { status: 'error', message: 'Too many requests, slow down.' },
-}));
 
 app.use(express.json({
   limit: '5mb',
