@@ -1,0 +1,307 @@
+/* ============================================================
+   HackProof AI — Responsive Media Queries
+   Breakpoints (Tailwind-aligned):
+     xs  :  < 480px
+     sm  :  480px  – 639px
+     md  :  640px  – 767px
+     lg  :  768px  – 1023px
+     xl  :  1024px – 1279px
+     2xl :  1280px+
+   ============================================================ */
+
+/* ─────────────────────────────────────────────────────────────
+   1. GLOBAL BASE — Scale root font down on small screens
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 639px) {
+  html {
+    font-size: 14px; /* was 18px; keeps rem-based sizes comfortable */
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   2. SCROLLBAR — hide on touch devices
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 639px) {
+  ::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   3. HEADER — nav tabs collapse nicely on mobile
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 639px) {
+  /* Main header inner wrapper stacks vertically on xs */
+  header .max-w-7xl {
+    gap: 0.5rem;
+  }
+
+  /* Nav tab row wraps and scrolls horizontally */
+  header .flex.items-center.gap-1\.5.bg-slate-900 {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-shrink: 0;
+    width: 100%;
+    padding-bottom: 2px;
+  }
+  header .flex.items-center.gap-1\.5.bg-slate-900::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Ensure nav buttons don't shrink */
+  header .flex.items-center.gap-1\.5.bg-slate-900 button {
+    flex-shrink: 0;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  /* Sign-in / user pill spans full width on mobile */
+  header .flex.items-center.justify-end {
+    width: 100%;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   4. MAIN CONTENT — padding adjustments
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 639px) {
+  main.flex-grow {
+    padding: 0.75rem;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  main.flex-grow {
+    padding: 1.25rem;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   5. LANDING PAGE — Hero section
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 639px) {
+  /* Hero text tightening */
+  section h1.text-3xl {
+    font-size: 1.6rem;
+    line-height: 1.25;
+  }
+
+  /* Keep video from overflowing on very narrow screens */
+  .aspect-video {
+    aspect-ratio: 16 / 10;
+  }
+
+  /* CTA buttons stack with full-width treatment */
+  .flex.flex-col.sm\:flex-row.items-center.justify-center.gap-3 button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   6. LANDING PAGE — Comparison & Feature grids
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 639px) {
+  /* Comparative section: stack cards */
+  .grid.md\:grid-cols-2 {
+    grid-template-columns: 1fr;
+  }
+
+  /* Feature grid: single column */
+  .grid.md\:grid-cols-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   7. ARCHITECTURE FLOW — scrollable node bar on mobile
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 639px) {
+  /* Architecture flow card padding */
+  #architecture-flow-section {
+    padding: 1rem;
+  }
+
+  /* Node grid: horizontal scroll on xs */
+  #architecture-flow-section .grid.grid-cols-2 {
+    display: flex;
+    overflow-x: auto;
+    gap: 0.5rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+  #architecture-flow-section .grid.grid-cols-2::-webkit-scrollbar {
+    display: none;
+  }
+  #architecture-flow-section .grid.grid-cols-2 button {
+    flex-shrink: 0;
+    min-width: 90px;
+    padding: 0.625rem;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 767px) {
+  /* On sm: 3 columns instead of 2 */
+  #architecture-flow-section .grid.grid-cols-2 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   8. AUTH GATE — max-width on small screens
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 479px) {
+  #auth-gate-container {
+    padding: 0.75rem;
+  }
+
+  /* Role buttons within 3-column grid stay small */
+  #auth-gate-container .grid.grid-cols-3 button {
+    padding: 0.5rem 0.25rem;
+  }
+
+  /* Role labels smaller on xs */
+  #auth-gate-container .grid.grid-cols-3 span.text-xs {
+    font-size: 0.6rem;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   9. NOTIFICATION TOAST — always full-width on xs
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 639px) {
+  /* The toast is positioned fixed top-6 left-6 right-6 — fine as-is */
+  /* But we constrain max text width to prevent overflow */
+  .fixed.top-6.left-6.right-6 h4 {
+    font-size: 0.75rem;
+  }
+  .fixed.top-6.left-6.right-6 p {
+    font-size: 0.65rem;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   10. TEAM DASHBOARD — stat cards wrap on xs
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 479px) {
+  /* The stats strip: 2 columns on xs */
+  .flex.flex-wrap.gap-4.w-full {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  /* Commit timeline truncation fix */
+  .truncate.max-w-\[150px\] {
+    max-width: 100px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   11. JUDGE DASHBOARD — team button strip on mobile
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 639px) {
+  /* Allow team selector buttons to scroll horizontally */
+  .flex.flex-wrap.gap-2.overflow-x-auto {
+    flex-wrap: nowrap;
+  }
+  .flex.flex-wrap.gap-2.overflow-x-auto button {
+    flex-shrink: 0;
+  }
+
+  /* Tab bar: horizontal scroll */
+  .flex.gap-2.overflow-x-auto {
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .flex.gap-2.overflow-x-auto::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   12. ORGANIZER DASHBOARD — KPI grid on xs
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 479px) {
+  /* KPI cards: 1 col on xs */
+  .grid.grid-cols-2.lg\:grid-cols-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 480px) and (max-width: 639px) {
+  /* KPI cards: 2 col on sm */
+  .grid.grid-cols-2.lg\:grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   13. BLOCKCHAIN EXPLORER — horizontal overflow safety
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 639px) {
+  /* Long tx hashes shouldn't break layout */
+  .font-mono.text-\[11px\],
+  .font-mono.text-xs {
+    word-break: break-all;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   14. GENERAL GRID OVERRIDES — lg:grid-cols-3 on mobile
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 1023px) {
+  /* All 3-col split dashboards become single column below lg */
+  .grid.lg\:grid-cols-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   15. TEXTAREA in reports / push form — min-height adjustment
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 639px) {
+  textarea.min-h-\[300px\] {
+    min-height: 180px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   16. FOOTER
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 639px) {
+  footer .max-w-7xl {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.5rem;
+  }
+
+  footer p.text-right {
+    text-align: center;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   17. PRINT — hide interactive chrome
+   ───────────────────────────────────────────────────────────── */
+@media print {
+  header,
+  footer,
+  .fixed,
+  .sticky {
+    display: none !important;
+  }
+
+  main.flex-grow {
+    padding: 0;
+  }
+}
