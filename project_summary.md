@@ -19,7 +19,7 @@ The user interface of HackProof AI features a modern, real-time control console 
 
 The application is structured around four primary user personas, each with a dedicated cockpit interface:
 
-#### 1. Hacker Team Hub (`hacker-team`)
+#### 1. Hacker Team Hub (`hackathon-team`)
 Designed for participating hackathon developers to submit code and manage their project profile.
 * **Simulate Git Push (Interactive Command Bar)**: A live form allowing teams to simulate real-time pushes. Developers can customize the commit message, commit category (Frontend, Backend, Blockchain, Database, AI, Docs), lines of code added or deleted, and files changed.
 * **Real-time Project Timeline**: A chronological feed of all commits made by the team, displaying AI summaries of their work, categorized language badges, lines changed, and cryptographic blockchain signatures.
