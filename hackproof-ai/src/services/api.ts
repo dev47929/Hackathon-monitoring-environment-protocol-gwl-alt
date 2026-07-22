@@ -1,4 +1,4 @@
-import { Team, HackathonStats, ActivityLog, BlocksResponse, TransactionDetail, BlockchainMode } from '../types';
+import { Team, HackathonStats, ActivityLog, BlocksResponse, TransactionDetail, BlockchainMode, CommitAnalysisRecord } from '../types';
 
 const API_BASE = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
   ? ''
@@ -180,8 +180,8 @@ export const CommitsAPI = {
     });
   },
 
-  async analyzeCommit(hash: string): Promise<{ analysis: string; cached: boolean; model: string }> {
-    return apiFetch(`${API_BASE}/api/${hash}/analyze`, {
+  async analyzeCommit(hash: string): Promise<CommitAnalysisRecord> {
+    return apiFetch<CommitAnalysisRecord>(`${API_BASE}/api/${hash}/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     });

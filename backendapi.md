@@ -120,6 +120,7 @@ Auth: optional.
     "progress": 75,
     "overallRiskScore": 20,
     "description": "A description",
+    "readmeContent": "Project overview text for AI context",
     "commits": [],
     "claimedFeatures": [],
     "interviewQuestions": []
@@ -151,7 +152,8 @@ Auth: required. Role: `team` | `organizer`
   "avatar": "",
   "techStack": ["React", "Node.js"],
   "members": ["Alice", "Bob"],
-  "description": "We build great things"
+  "description": "We build great things",
+  "readmeContent": "Optional project README for AI context"
 }
 ```
 
@@ -186,6 +188,7 @@ Auth: required. Role: `organizer` only.
   "members": ["Alice", "Bob", "Charlie"],
   "progress": 80,
   "description": "Updated description",
+  "readmeContent": "Updated project overview",
   "claimedFeatures": [
     {
       "id": "feat-1",
@@ -359,6 +362,34 @@ Auth: required. Role: `judge`
 ```
 
 **Errors:** 400 (invalid payload, no justification to review), 404 (commit not found)
+
+---
+
+### POST /api/:hash/analyze
+
+Auth: optional.
+
+Trigger an AI-powered authenticity analysis of a commit. Results are cached server-side; repeat calls return the cached result.
+
+**Response 200 (uncached):**
+```json
+{
+  "analysis": "This commit aligns well with the project's stated goals of building a React-based dashboard. The changes are focused on the frontend layer...",
+  "cached": false,
+  "model": "gemini-2.5-flash"
+}
+```
+
+**Response 200 (cached):**
+```json
+{
+  "analysis": "This commit aligns well with the project's stated goals of building a React-based dashboard...",
+  "cached": true,
+  "model": "gemini-2.5-flash"
+}
+```
+
+**Errors:** 404 (commit not found), 500 (AI analysis failed)
 
 ---
 
