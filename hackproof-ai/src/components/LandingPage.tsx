@@ -96,7 +96,7 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
 
               <h1 className="text-3xl md:text-4xl xl:text-5xl font-extrabold text-white tracking-tight leading-tight">
                 Continuous, Transparent<br />&amp; Intelligent{' '}
-                <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-600 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-blue-300 via-indigo-400 to-indigo-600 bg-clip-text text-transparent">
                   Hackathon Evaluation
                 </span>
               </h1>
