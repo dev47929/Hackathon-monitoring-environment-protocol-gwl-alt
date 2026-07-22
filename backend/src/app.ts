@@ -16,6 +16,7 @@ import { githubService } from './services/githubService.js';
 import { blockchainService } from './services/blockchainService.js';
 
 const app = express();
+app.set('trust proxy', 1);
 
 app.disable('x-powered-by');
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
