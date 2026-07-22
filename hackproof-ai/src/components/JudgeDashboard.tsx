@@ -473,7 +473,7 @@ ${currentTeam.interviewQuestions.map((q, idx) => `**Q${idx + 1}: ${q.question}**
 
                         <div className="text-xs text-slate-300 space-y-2">
                           <p className="leading-relaxed bg-slate-950 p-2.5 rounded-lg border border-slate-850 text-slate-300 font-mono text-xs">
-                            <strong className="text-pink-400 font-mono uppercase text-[11px] block mb-1">🤖 AI EXCERPT SUMMARY:</strong>
+                            <strong className="text-pink-400 font-mono uppercase text-[11px] block mb-1">🤖 AI EXPERT SUMMARY:</strong>
                             {commit.aiSummary}
                           </p>
                           <div className="flex justify-between items-center text-xs text-slate-500 font-mono">
