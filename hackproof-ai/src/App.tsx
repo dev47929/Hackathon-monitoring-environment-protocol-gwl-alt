@@ -63,7 +63,10 @@ export default function App() {
     async function loadBackendData() {
       try {
         const loadedTeams = await TeamsAPI.getAll();
-        if (loadedTeams && loadedTeams.length > 0) { setTeams(loadedTeams); setSelectedTeamId(loadedTeams[0].id); }
+        if (loadedTeams && loadedTeams.length > 0) {
+          setTeams(loadedTeams);
+          setSelectedTeamId(prev => loadedTeams.some(t => t.id === prev) ? prev : loadedTeams[0].id);
+        }
       } catch (e) { console.warn('Failed to load teams from backend, using mocks:', e); }
       try {
         const loadedStats = await AnalyticsAPI.getStats();
@@ -75,7 +78,7 @@ export default function App() {
       } catch (e) { console.warn('Failed to load logs from backend, using mocks:', e); }
     }
     loadBackendData();
-  }, []);
+  }, [location.pathname]);
 
   const triggerRefresh = async () => {
     try {

@@ -280,7 +280,7 @@ export default function BlockchainExplorer({ teams: propTeams }: BlockchainExplo
           visibleTeamChains.map(({ team, blocks, totalCommitsCount, hasDeleted, hasFlagged }) => (
             <div
               key={team.id}
-              ref={(el) => (teamSectionRefs.current[team.id] = el)}
+              ref={(el) => { if (el) teamSectionRefs.current[team.id] = el; }}
               className="bg-slate-900/80 border border-slate-850 rounded-2xl p-5 space-y-3.5 shadow-lg relative"
             >
               {/* Team Header */}
@@ -342,7 +342,7 @@ export default function BlockchainExplorer({ teams: propTeams }: BlockchainExplo
 
               {/* Horizontal Node Chain Flow for this Team */}
               <div
-                ref={(el) => (teamScrollRefs.current[team.id] = el)}
+                ref={(el) => { if (el) teamScrollRefs.current[team.id] = el; }}
                 className="flex items-center gap-3 overflow-x-auto pb-2 pt-1 px-1 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-slate-950 select-none"
               >
                 {blocks.length === 0 ? (
