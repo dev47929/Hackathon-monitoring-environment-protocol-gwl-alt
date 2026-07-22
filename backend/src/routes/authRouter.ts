@@ -5,8 +5,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
 import { asyncHandler, badRequest, conflict } from '../utils/errors.js';
 import * as repo from '../data/repository.js';
+import { config } from '../config/index.js';
 
 export const authRouter: Router = Router();
+const JWT_SECRET = config.server.jwtSecret || process.env.JWT_SECRET || 'dev-insecure-secret-change-me';
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -47,7 +49,7 @@ authRouter.post('/register', asyncHandler(async (req, res) => {
   });
 
   const tokenPayload = { userId: user.id, role: user.role };
-  const token = jwt.sign(tokenPayload, process.env.JWT_SECRET!, { expiresIn: '7d' });
+  const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '7d' });
 
   res.status(201).json({
     status: 'success',
@@ -73,7 +75,7 @@ authRouter.post('/login', asyncHandler(async (req, res) => {
 
   const { password: _pw, ...safeUser } = row;
   const tokenPayload = { userId: row.id, role: row.role };
-  const token = jwt.sign(tokenPayload, process.env.JWT_SECRET!, { expiresIn: '7d' });
+  const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '7d' });
 
   res.json({
     status: 'success',

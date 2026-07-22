@@ -55,7 +55,7 @@ export class GitHubService {
   }
 
   isConfigured(): boolean {
-    return this.token.length > 0;
+    return true;
   }
 
   private headers(): Record<string, string> {

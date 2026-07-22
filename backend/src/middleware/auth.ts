@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { unauthorized, forbidden } from '../utils/errors.js';
+import { config } from '../config/index.js';
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -10,6 +11,7 @@ declare module 'express-serve-static-core' {
 }
 
 const TOKEN_PREFIX = 'Bearer ';
+const JWT_SECRET = config.server.jwtSecret || process.env.JWT_SECRET || 'dev-insecure-secret-change-me';
 
 function decodeToken(req: Request): { userId: string; role: string } | null {
   const header = req.headers.authorization;
@@ -17,7 +19,7 @@ function decodeToken(req: Request): { userId: string; role: string } | null {
   const token = header.slice(TOKEN_PREFIX.length).trim();
   if (!token) return null;
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string; role: string };
+    const payload = jwt.verify(token, JWT_SECRET) as { userId: string; role: string };
     return payload;
   } catch {
     return null;

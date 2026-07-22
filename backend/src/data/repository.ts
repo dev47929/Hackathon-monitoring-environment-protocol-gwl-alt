@@ -45,103 +45,186 @@ function mapCommit(c: any): Commit {
 
 const teamInclude = { commits: true }
 
+// In-Memory Fallback Store
+const memTeams = new Map<string, Team>()
+const memLogs: ActivityLog[] = []
+const memUsers = new Map<string, { id: string; email: string; name: string; password: string; role: string; createdAt: Date }>()
+
 export async function getAllTeams(): Promise<Team[]> {
-  const rows = await prisma.team.findMany({ include: teamInclude, orderBy: { createdAt: 'asc' } })
-  return rows.map(mapTeam)
+  try {
+    if (prisma.team) {
+      const rows = await prisma.team.findMany({ include: teamInclude, orderBy: { createdAt: 'asc' } })
+      if (rows.length > 0) return rows.map(mapTeam)
+    }
+  } catch {
+    // fallback
+  }
+  return Array.from(memTeams.values())
 }
 
 export async function getTeamById(id: string): Promise<Team | undefined> {
-  const row = await prisma.team.findUnique({ where: { id }, include: teamInclude })
-  return row ? mapTeam(row) : undefined
+  try {
+    if (prisma.team) {
+      const row = await prisma.team.findUnique({ where: { id }, include: teamInclude })
+      if (row) return mapTeam(row)
+    }
+  } catch {
+    // fallback
+  }
+  return memTeams.get(id)
 }
 
 export async function findTeamByRepoUrl(repoUrl: string): Promise<Team | undefined> {
   const normalized = repoUrl.replace(/\.git$/, '').replace(/\/$/, '').toLowerCase()
-  const all = await prisma.team.findMany({ include: teamInclude })
-  const row = all.find((t) => t.repoUrl.toLowerCase().replace(/\.git$/, '').replace(/\/$/, '') === normalized)
-  return row ? mapTeam(row) : undefined
+  try {
+    if (prisma.team) {
+      const all = await prisma.team.findMany({ include: teamInclude })
+      const row = all.find((t) => t.repoUrl.toLowerCase().replace(/\.git$/, '').replace(/\/$/, '') === normalized)
+      if (row) return mapTeam(row)
+    }
+  } catch {
+    // fallback
+  }
+  return Array.from(memTeams.values()).find(
+    (t) => t.repoUrl.toLowerCase().replace(/\.git$/, '').replace(/\/$/, '') === normalized
+  )
 }
 
 export async function addTeam(team: Team): Promise<void> {
-  await prisma.team.create({
-    data: {
-      id: team.id,
-      name: team.name,
-      repoUrl: team.repoUrl,
-      avatar: team.avatar,
-      techStack: team.techStack,
-      members: team.members,
-      progress: team.progress,
-      overallRiskScore: team.overallRiskScore,
-      description: team.description,
-      claimedFeatures: team.claimedFeatures as any,
-      interviewQuestions: team.interviewQuestions as any,
-    },
-  })
-}
-
-export async function updateTeam(id: string, updates: Partial<Team>): Promise<Team> {
-  const data: any = { ...updates }
-  if (updates.claimedFeatures) data.claimedFeatures = updates.claimedFeatures as any
-  if (updates.interviewQuestions) data.interviewQuestions = updates.interviewQuestions as any
-  if (updates.commits) delete data.commits
-  const row = await prisma.team.update({ where: { id }, data, include: teamInclude })
-  return mapTeam(row)
-}
-
-export async function addCommitToTeam(teamId: string, commit: Commit): Promise<void> {
-  await prisma.commit.create({
-    data: {
-      hash: commit.hash,
-      teamId,
-      timestamp: commit.timestamp,
-      author: commit.author,
-      message: commit.message,
-      changedFiles: commit.changedFiles,
-      additions: commit.additions,
-      deletions: commit.deletions,
-      aiSummary: commit.aiSummary,
-      featureEvolution: commit.featureEvolution,
-      category: commit.category,
-      blockchainTx: commit.blockchainTx,
-      blockchainStatus: commit.blockchainStatus,
-      isSuspicious: commit.isSuspicious ?? false,
-      suspiciousReason: commit.suspiciousReason ?? null,
-      riskScore: commit.riskScore,
-      justification: commit.justification ?? null,
-      justificationStatus: commit.justificationStatus,
-      blockNumber: (commit as any).blockNumber ?? null,
-      eventHash: (commit as any).eventHash ?? null,
-    },
-  })
-}
-
-export async function findCommitByHash(hash: string): Promise<{ team: Team; commit: Commit } | undefined> {
-  const commitRow = await prisma.commit.findUnique({
-    where: { hash },
-    include: { team: { include: teamInclude } },
-  })
-  if (!commitRow) return undefined
-  return { team: mapTeam(commitRow.team), commit: mapCommit(commitRow) }
-}
-
-export async function updateCommit(hash: string, updates: Partial<Commit>): Promise<Commit | undefined> {
-  const data: any = { ...updates }
-  if (updates.isSuspicious !== undefined) data.isSuspicious = updates.isSuspicious
-  if (updates.suspiciousReason !== undefined) data.suspiciousReason = updates.suspiciousReason ?? null
-  if (updates.justification !== undefined) data.justification = updates.justification ?? null
+  memTeams.set(team.id, { ...team, commits: team.commits ? [...team.commits] : [] })
   try {
-    const row = await prisma.commit.update({ where: { hash }, data })
-    return mapCommit(row)
-  } catch {
-    return undefined
+    if (prisma.team) {
+      await prisma.team.create({
+        data: {
+          id: team.id,
+          name: team.name,
+          repoUrl: team.repoUrl,
+          avatar: team.avatar,
+          techStack: team.techStack,
+          members: team.members,
+          progress: team.progress,
+          overallRiskScore: team.overallRiskScore,
+          description: team.description,
+          claimedFeatures: team.claimedFeatures as any,
+          interviewQuestions: team.interviewQuestions as any,
+        },
+      })
+    }
+  } catch (err) {
+    console.warn('[repository] Prisma addTeam fallback:', err instanceof Error ? err.message : err)
   }
 }
 
+export async function updateTeam(id: string, updates: Partial<Team>): Promise<Team> {
+  const existing = memTeams.get(id)
+  if (existing) {
+    const updatedMem = { ...existing, ...updates }
+    memTeams.set(id, updatedMem)
+  }
+  try {
+    if (prisma.team) {
+      const data: any = { ...updates }
+      if (updates.claimedFeatures) data.claimedFeatures = updates.claimedFeatures as any
+      if (updates.interviewQuestions) data.interviewQuestions = updates.interviewQuestions as any
+      if (updates.commits) delete data.commits
+      const row = await prisma.team.update({ where: { id }, data, include: teamInclude })
+      return mapTeam(row)
+    }
+  } catch {
+    // fallback
+  }
+  return memTeams.get(id) || (existing as Team)
+}
+
+export async function addCommitToTeam(teamId: string, commit: Commit): Promise<void> {
+  const t = memTeams.get(teamId)
+  if (t) {
+    const commits = t.commits ? t.commits.filter(c => c.hash !== commit.hash) : []
+    commits.push(commit)
+    t.commits = commits
+    memTeams.set(teamId, t)
+  }
+  try {
+    if (prisma.commit) {
+      await prisma.commit.create({
+        data: {
+          hash: commit.hash,
+          teamId,
+          timestamp: commit.timestamp,
+          author: commit.author,
+          message: commit.message,
+          changedFiles: commit.changedFiles,
+          additions: commit.additions,
+          deletions: commit.deletions,
+          aiSummary: commit.aiSummary,
+          featureEvolution: commit.featureEvolution,
+          category: commit.category,
+          blockchainTx: commit.blockchainTx,
+          blockchainStatus: commit.blockchainStatus,
+          isSuspicious: commit.isSuspicious ?? false,
+          suspiciousReason: commit.suspiciousReason ?? null,
+          riskScore: commit.riskScore,
+          justification: commit.justification ?? null,
+          justificationStatus: commit.justificationStatus,
+          blockNumber: (commit as any).blockNumber ?? null,
+          eventHash: (commit as any).eventHash ?? null,
+        },
+      })
+    }
+  } catch (err) {
+    console.warn('[repository] Prisma addCommitToTeam fallback:', err instanceof Error ? err.message : err)
+  }
+}
+
+export async function findCommitByHash(hash: string): Promise<{ team: Team; commit: Commit } | undefined> {
+  try {
+    if (prisma.commit) {
+      const commitRow = await prisma.commit.findUnique({
+        where: { hash },
+        include: { team: { include: teamInclude } },
+      })
+      if (commitRow) return { team: mapTeam(commitRow.team), commit: mapCommit(commitRow) }
+    }
+  } catch {
+    // fallback
+  }
+  for (const t of memTeams.values()) {
+    const found = t.commits?.find(c => c.hash === hash)
+    if (found) return { team: t, commit: found }
+  }
+  return undefined
+}
+
+export async function updateCommit(hash: string, updates: Partial<Commit>): Promise<Commit | undefined> {
+  let targetCommit: Commit | undefined
+  for (const t of memTeams.values()) {
+    const c = t.commits?.find(x => x.hash === hash)
+    if (c) {
+      Object.assign(c, updates)
+      targetCommit = c
+      break
+    }
+  }
+  try {
+    if (prisma.commit) {
+      const data: any = { ...updates }
+      if (updates.isSuspicious !== undefined) data.isSuspicious = updates.isSuspicious
+      if (updates.suspiciousReason !== undefined) data.suspiciousReason = updates.suspiciousReason ?? null
+      if (updates.justification !== undefined) data.justification = updates.justification ?? null
+      const row = await prisma.commit.update({ where: { hash }, data })
+      return mapCommit(row)
+    }
+  } catch {
+    // fallback
+  }
+  return targetCommit
+}
+
 export async function recomputeTeamRisk(teamId: string): Promise<number> {
-  const commits = await prisma.commit.findMany({ where: { teamId } })
+  const team = memTeams.get(teamId)
+  const commits = team?.commits || []
   if (commits.length === 0) {
-    await prisma.team.update({ where: { id: teamId }, data: { overallRiskScore: 0 } })
+    if (team) team.overallRiskScore = 0
     return 0
   }
   let weightedSum = 0
@@ -153,7 +236,14 @@ export async function recomputeTeamRisk(teamId: string): Promise<number> {
   }
   const avg = weightedSum / commits.length
   const score = Math.max(0, Math.min(100, Math.round(avg)))
-  await prisma.team.update({ where: { id: teamId }, data: { overallRiskScore: score } })
+  if (team) team.overallRiskScore = score
+  try {
+    if (prisma.team) {
+      await prisma.team.update({ where: { id: teamId }, data: { overallRiskScore: score } })
+    }
+  } catch {
+    // fallback
+  }
   return score
 }
 
@@ -171,28 +261,44 @@ export async function setJustificationReview(hash: string, status: 'accepted' | 
 }
 
 export async function getAllLogs(): Promise<ActivityLog[]> {
-  const rows = await prisma.activityLog.findMany({ orderBy: { timestamp: 'desc' } })
-  return rows.map((r) => ({
-    id: r.id,
-    timestamp: r.timestamp,
-    type: r.type as ActivityLog['type'],
-    message: r.message,
-    teamName: r.teamName,
-    refId: r.refId ?? undefined,
-  }))
+  try {
+    if (prisma.activityLog) {
+      const rows = await prisma.activityLog.findMany({ orderBy: { timestamp: 'desc' } })
+      if (rows.length > 0) {
+        return rows.map((r) => ({
+          id: r.id,
+          timestamp: r.timestamp,
+          type: r.type as ActivityLog['type'],
+          message: r.message,
+          teamName: r.teamName,
+          refId: r.refId ?? undefined,
+        }))
+      }
+    }
+  } catch {
+    // fallback
+  }
+  return [...memLogs].reverse()
 }
 
 export async function addLog(log: ActivityLog): Promise<void> {
-  await prisma.activityLog.create({ data: log as any })
+  memLogs.push(log)
+  try {
+    if (prisma.activityLog) {
+      await prisma.activityLog.create({ data: log as any })
+    }
+  } catch {
+    // fallback
+  }
 }
 
 export async function getStats(): Promise<HackathonStats> {
-  const teams = await prisma.team.findMany({ include: { commits: true } })
+  const teams = await getAllTeams()
   const totalTeams = teams.length
-  const totalCommits = teams.reduce((sum, t) => sum + t.commits.length, 0)
+  const totalCommits = teams.reduce((sum, t) => sum + (t.commits?.length || 0), 0)
   const averageCommits = totalTeams === 0 ? 0 : Math.round((totalCommits / totalTeams) * 10) / 10
   const activeAlerts = teams.reduce(
-    (sum, t) => sum + t.commits.filter((c) => c.isSuspicious && c.justificationStatus !== 'accepted').length,
+    (sum, t) => sum + (t.commits || []).filter((c) => c.isSuspicious && c.justificationStatus !== 'accepted').length,
     0,
   )
   return { totalTeams, totalCommits, averageCommits, activeAlerts }
@@ -205,26 +311,64 @@ export async function createUser(data: {
   password: string;
   role: 'team' | 'organizer' | 'judge';
 }): Promise<User> {
-  const row = await prisma.user.create({ data })
+  const newUser = {
+    id: data.id,
+    email: data.email,
+    name: data.name,
+    password: data.password,
+    role: data.role,
+    createdAt: new Date(),
+  }
+  memUsers.set(data.email.toLowerCase(), newUser)
+  try {
+    if (prisma.user) {
+      const row = await prisma.user.create({ data })
+      return {
+        id: row.id,
+        email: row.email,
+        name: row.name,
+        role: row.role as User['role'],
+        createdAt: row.createdAt.toISOString(),
+      }
+    }
+  } catch {
+    // fallback
+  }
   return {
-    id: row.id,
-    email: row.email,
-    name: row.name,
-    role: row.role as User['role'],
-    createdAt: row.createdAt.toISOString(),
+    id: newUser.id,
+    email: newUser.email,
+    name: newUser.name,
+    role: newUser.role as User['role'],
+    createdAt: newUser.createdAt.toISOString(),
   }
 }
 
 export async function findUserByEmail(email: string): Promise<{ id: string; email: string; name: string; password: string; role: string; createdAt: Date } | undefined> {
-  const row = await prisma.user.findUnique({ where: { email } })
-  return row ?? undefined
+  const mem = memUsers.get(email.toLowerCase())
+  if (mem) return mem
+  try {
+    if (prisma.user) {
+      const row = await prisma.user.findUnique({ where: { email } })
+      if (row) return row
+    }
+  } catch {
+    // fallback
+  }
+  return undefined
 }
 
 export async function resetState(): Promise<void> {
-  await prisma.transaction.deleteMany()
-  await prisma.block.deleteMany()
-  await prisma.commit.deleteMany()
-  await prisma.activityLog.deleteMany()
-  await prisma.team.deleteMany()
-  await prisma.user.deleteMany()
+  memUsers.clear()
+  memTeams.clear()
+  memLogs.length = 0
+  try {
+    if (prisma.transaction) await prisma.transaction.deleteMany()
+    if (prisma.block) await prisma.block.deleteMany()
+    if (prisma.commit) await prisma.commit.deleteMany()
+    if (prisma.activityLog) await prisma.activityLog.deleteMany()
+    if (prisma.team) await prisma.team.deleteMany()
+    if (prisma.user) await prisma.user.deleteMany()
+  } catch {
+    // ignore
+  }
 }

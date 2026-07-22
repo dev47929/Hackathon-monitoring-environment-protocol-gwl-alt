@@ -20,6 +20,7 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
   const [newTeamName, setNewTeamName] = useState('');
   const [newTeamUrl, setNewTeamUrl] = useState('');
   const [newTeamLead, setNewTeamLead] = useState('');
+  const [newTechStack, setNewTechStack] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
 
   // User accounts form state
@@ -40,7 +41,9 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
     if (!newTeamName.trim() || !newTeamUrl.trim()) return;
 
     setIsRegistering(true);
-    const techStack = ['React', 'Tailwind', 'Node.js'];
+    const techStack = newTechStack.trim() 
+      ? newTechStack.split(',').map(s => s.trim()).filter(Boolean)
+      : ['React', 'Tailwind', 'Node.js'];
     const avatar = '🛸';
     const description = 'A newly registered hackathon project.';
 
@@ -414,6 +417,17 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
                       onChange={(e) => setNewTeamUrl(e.target.value)}
                       required
                       className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-slate-750 font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-mono text-slate-400 block uppercase">Tech Stack (comma-separated)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. TypeScript, React, Node.js"
+                      value={newTechStack}
+                      onChange={(e) => setNewTechStack(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-slate-750"
                     />
                   </div>
 

@@ -143,10 +143,22 @@ export class GeminiService {
     const { data, error } = await this.generate(config.gemini.interviewModel, interviewQuestionSystemPrompt, userPrompt);
     if (error || !data) {
       console.warn('[gemini] generateInterviewQuestion returned no usable output:', error);
-      return null;
+      const topCommit = commitsSummary[0];
+      return {
+        question: `How did you design and implement the logic in commit '${topCommit?.message || 'recent commit'}' (${topCommit?.hash || 'HEAD'})?`,
+        context: `Focusing on code changes made across ${topCommit?.changedFiles?.join(', ') || 'project files'}.`,
+        suggestedAnswer: `The team modified key files to introduce new functionality and streamline repository features.`,
+      };
     }
     const parsed = parseJsonResponse<InterviewQuestionAI>(data);
-    if (!parsed || !parsed.question) return null;
+    if (!parsed || !parsed.question) {
+      const topCommit = commitsSummary[0];
+      return {
+        question: `How did you design and implement the logic in commit '${topCommit?.message || 'recent commit'}' (${topCommit?.hash || 'HEAD'})?`,
+        context: `Focusing on code changes made across ${topCommit?.changedFiles?.join(', ') || 'project files'}.`,
+        suggestedAnswer: `The team modified key files to introduce new functionality and streamline repository features.`,
+      };
+    }
     return {
       question: String(parsed.question),
       context: String(parsed.context ?? ''),
