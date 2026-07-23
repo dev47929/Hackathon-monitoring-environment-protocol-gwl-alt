@@ -135,6 +135,7 @@ declare module '@/components/LineSidebar' {
     smoothing?: number;
     defaultActive?: number | null;
     onItemClick?: (index: number, label: string) => void;
+    onHover?: (index: number | null) => void;
     className?: string;
   }
   const LineSidebar: FC<LineSidebarProps>;

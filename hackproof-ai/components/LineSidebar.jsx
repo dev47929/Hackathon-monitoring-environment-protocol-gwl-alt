@@ -29,6 +29,7 @@ const LineSidebar = ({
   fontSize = 1.1,
   defaultActive = null,
   onItemClick,
+  onHover,
   className = ''
 }) => {
   const [activeIndex, setActiveIndex] = useState(defaultActive);
@@ -39,12 +40,20 @@ const LineSidebar = ({
     onItemClick?.(index, label);
   };
 
+  const handleMouseEnter = (index) => {
+    setHoveredIndex(index);
+    onHover?.(index);
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredIndex(null);
+    onHover?.(null);
+  };
+
   return (
     <nav
       className={`relative flex justify-start ${showMarker ? 'pl-[64px]' : ''} ${className}`}
-      style={{
-        fontSize: `${fontSize}rem`,
-      }}
+      style={{ fontSize: `${fontSize}rem` }}
     >
       <ul
         className="m-0 flex list-none flex-col py-2"
@@ -60,8 +69,8 @@ const LineSidebar = ({
               key={`${label}-${index}`}
               aria-current={isActive ? 'true' : undefined}
               onClick={() => handleClick(index, label)}
-              onMouseEnter={() => setHoveredIndex(index)}
-              onMouseLeave={() => setHoveredIndex(null)}
+              onMouseEnter={() => handleMouseEnter(index)}
+              onMouseLeave={handleMouseLeave}
               className="relative cursor-pointer group select-none py-1"
             >
               {/* Horizontal Accent Marker Line */}
