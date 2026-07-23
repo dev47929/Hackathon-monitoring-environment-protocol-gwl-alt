@@ -1,7 +1,11 @@
 import { motion } from 'motion/react';
-import { Shield, GitCommit, Search, AlertCircle, Sparkles, Database, Mail, Trophy, Cpu, Flame, Users, CheckCircle2, ChevronRight, HelpCircle } from 'lucide-react';
+import { Shield, GitCommit, Search, AlertCircle, Sparkles, Database, Mail, Trophy, Cpu, Flame, Users, CheckCircle2, ChevronRight, HelpCircle, Check, X } from 'lucide-react';
 import ArchitectureFlow from './ArchitectureFlow';
-import Silk from '@/components/Silk';
+import BorderGlow from '@/components/BorderGlow';
+import DotField from '@/components/DotField';
+import RotatingText from '@/components/RotatingText';
+import Grainient from '@/components/Grainient';
+import LineSidebar from '@/components/LineSidebar';
 
 interface LandingPageProps {
   onSelectRole: (role: 'team' | 'judge' | 'organizer') => void;
@@ -12,7 +16,8 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
     {
       title: 'Traditional Judging',
       icon: HelpCircle,
-      color: 'text-red-400 border-red-950 bg-red-950/20',
+      color: 'text-red-400 border-red-900/40',
+      grainColors: { color1: '#450a0a', color2: '#7f1d1d', color3: '#18181b' },
       items: [
         'Only inspects the final code state or a pre-recorded video demo.',
         'No historical clarity: Teams can copy-paste full code blocks at the 40th hour.',
@@ -24,7 +29,8 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
     {
       title: 'HackProof AI Enabled',
       icon: Shield,
-      color: 'text-emerald-400 border-emerald-950 bg-emerald-950/20',
+      color: 'text-emerald-400 border-emerald-900/40',
+      grainColors: { color1: '#064e3b', color2: '#047857', color3: '#092b20' },
       items: [
         'Continuous monitoring from the first git commit to final push.',
         'AI monitors incremental developer journeys, diffs, and commits.',
@@ -71,12 +77,19 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
   return (
     <div className="relative">
       <div className="fixed inset-0 w-screen h-screen z-0 pointer-events-none">
-        <Silk
-          speed={5}
-          scale={1}
-          color="#295e65"
-          noiseIntensity={4.5}
-          rotation={5.2}
+        <DotField
+          dotRadius={1.5}
+          dotSpacing={14}
+          bulgeStrength={67}
+          glowRadius={160}
+          sparkle={false}
+          waveAmplitude={0}
+          cursorRadius={500}
+          cursorForce={0.1}
+          bulgeOnly
+          gradientFrom="#155a94"
+          gradientTo="#B497CF"
+          glowColor="#120F17"
         />
       </div>
       <div className="relative z-10 space-y-16">
@@ -136,12 +149,13 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.35, duration: 0.5 }}
-            className="flex-1 w-full max-w-xl lg:max-w-none lg:mt-3"
+            whileHover={{ scale: 1.03, y: -4 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            className="flex-1 w-full max-w-xl lg:max-w-none lg:mt-3 cursor-pointer"
           >
-            <div className="relative rounded-2xl overflow-hidden border border-slate-800 shadow-2xl shadow-black/50 bg-slate-950 aspect-video">
+            <div className="relative aspect-video overflow-hidden rounded-2xl border-2 border-slate-700/60 bg-slate-950 shadow-2xl transition-all duration-300 hover:border-slate-500 hover:shadow-indigo-500/20 hover:shadow-2xl">
               <video
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-cover rounded-[14px]"
                 src="/make_a_video_with_zoom_in_zoom.webm"
                 autoPlay
                 loop
@@ -149,10 +163,9 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
                 playsInline
               />
 
-
               {/* Subtle grid overlay */}
               <div
-                className="absolute inset-0"
+                className="absolute inset-0 pointer-events-none rounded-[14px]"
                 style={{
                   backgroundImage: 'linear-gradient(rgba(99,102,241,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.03) 1px, transparent 1px)',
                   backgroundSize: '32px 32px',
@@ -200,31 +213,23 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
           <p className="text-sm text-slate-400 mt-1">Why traditional hackathon judging is vulnerable to exploits, and how we fix it.</p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          {problems.map((prob, idx) => {
-            const Icon = prob.icon;
-            return (
-              <div
-                key={idx}
-                className={`border rounded-2xl p-6 md:p-8 space-y-5 transition-all ${prob.color}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-slate-900 rounded-xl">
-                    <Icon className="w-6 h-6" />
-                  </div>
-                  <h3 className="text-xl font-bold text-white">{prob.title}</h3>
-                </div>
-                <ul className="space-y-3">
-                  {prob.items.map((item, id) => (
-                    <li key={id} className="flex items-start gap-2 text-sm text-slate-300">
-                      <span className="text-slate-500 mt-1 font-mono">▪</span>
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
+        {/* Detailed Breakdown: LineSidebar */}
+        <div className="mt-8 flex justify-start pl-4 md:pl-8">
+          <LineSidebar
+            items={[
+              '1. Inspection Depth',
+              '2. Historical Clarity',
+              '3. Fraud & Plagiarism',
+              '4. Slide vs Implementation'
+            ]}
+            accentColor="#818cf8"
+            textColor="#ffffff"
+            markerColor="#64748b"
+            defaultActive={null}
+            itemGap={28}
+            fontSize={1.15}
+            maxShift={32}
+          />
         </div>
       </section>
 
@@ -239,9 +244,26 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
 
       {/* Feature Grid Section */}
       <section className="space-y-8">
-        <div className="text-center">
-          <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">Powering Continuous Hackathons</h2>
-          <p className="text-sm text-slate-400 mt-1">Our comprehensive security, monitoring, and verification services built on robust algorithms.</p>
+        <div className="flex flex-col items-center justify-center text-center">
+          <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight flex items-center justify-center gap-2 flex-wrap">
+            <span>Powering</span>
+            <RotatingText
+              texts={['Continuous Hackathons', 'Transparent Evaluation', 'Automated Code Audit', 'Fair Developer Judging']}
+              mainClassName="px-3 py-1 bg-blue-600 text-white rounded-lg inline-flex items-center justify-center font-bold shadow-md shadow-blue-600/30"
+              staggerFrom="first"
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "-100%", opacity: 0 }}
+              staggerDuration={0.02}
+              splitLevelClassName="overflow-hidden inline-flex"
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              rotationInterval={3000}
+              splitBy="words"
+              auto
+              loop
+            />
+          </h2>
+          <p className="text-sm text-slate-400 mt-2">Our comprehensive security, monitoring, and verification services built on robust algorithms.</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">

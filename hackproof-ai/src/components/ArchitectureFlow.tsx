@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Code2, GitFork, Bot, Database, ShieldAlert, Terminal, ArrowRight, Layers, FileText } from 'lucide-react';
+import Grainient from '@/components/Grainient';
 
 interface Step {
   id: string;
@@ -101,13 +102,6 @@ export default function ArchitectureFlow() {
           <h3 className="text-xl md:text-2xl font-semibold text-white tracking-tight">
             How HackProof AI Works
           </h3>
-          <p className="text-sm text-slate-400 mt-1">
-            An elegant combination of AI code analysis and cryptographic ledger certification.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-full text-xs font-mono text-emerald-400">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          REAL-TIME PROTOCOL ACTIVE
         </div>
       </div>
 
@@ -163,45 +157,58 @@ export default function ArchitectureFlow() {
         })}
       </div>
 
-      {/* Interactive Detail Panel */}
+      {/* Interactive Detail Panel with Grainient Background */}
       <AnimatePresence mode="wait">
         <motion.div
           key={activeStep}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
-          className="bg-slate-950/80 border border-slate-800 rounded-xl p-5 md:p-6"
+          className="relative overflow-hidden border border-slate-800 rounded-xl p-5 md:p-6 shadow-2xl"
         >
-          <div className="flex flex-col lg:flex-row gap-6">
+          {/* Grainient Background for Elaboration Box */}
+          <div className="absolute inset-0 pointer-events-none opacity-80 -z-0">
+            <Grainient
+              color1="#03131a"
+              color2="#104e63"
+              color3="#076085"
+              timeSpeed={0.25}
+              grainAmount={0.08}
+              grainScale={1.5}
+              contrast={1.6}
+            />
+          </div>
+
+          <div className="relative z-10 flex flex-col lg:flex-row gap-6">
             {/* Left summary info */}
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-3">
-                <div className={`p-2 rounded-lg bg-gradient-to-br ${activeStepData.color} text-white`}>
+                <div className={`p-2 rounded-lg bg-gradient-to-br ${activeStepData.color} text-white shadow-md`}>
                   <activeStepData.icon className="w-5 h-5" />
                 </div>
                 <h4 className="text-lg font-semibold text-white">
                   {activeStepData.title}
                 </h4>
               </div>
-              <p className="text-slate-300 text-sm leading-relaxed mb-4">
+              <p className="text-slate-200 text-sm leading-relaxed mb-4">
                 {activeStepData.description}
               </p>
 
-              <div className="flex items-center gap-2 text-xs font-mono text-slate-500 border-t border-slate-900 pt-4">
-                <Terminal className="w-4 h-4" />
+              <div className="flex items-center gap-2 text-xs font-mono text-slate-400 border-t border-slate-800/80 pt-4">
+                <Terminal className="w-4 h-4 text-cyan-400" />
                 <span>INTEGRATION PROTOCOL // STATUS: SECURE</span>
               </div>
             </div>
 
             {/* Right bullet executions */}
-            <div className="flex-1 bg-slate-900/50 border border-slate-800/40 rounded-lg p-4">
-              <div className="text-xs font-mono text-slate-400 uppercase tracking-widest mb-3">
+            <div className="flex-1 bg-slate-950/70 border border-slate-800/60 rounded-lg p-4 backdrop-blur-md">
+              <div className="text-xs font-mono text-indigo-400 uppercase tracking-widest mb-3 font-semibold">
                 Execution Steps
               </div>
               <ul className="space-y-2.5">
                 {activeStepData.details.map((detail, dIdx) => (
-                  <li key={dIdx} className="flex items-start gap-2.5 text-xs text-slate-300 leading-relaxed">
-                    <span className="text-emerald-500 font-mono mt-0.5">✔</span>
+                  <li key={dIdx} className="flex items-start gap-2.5 text-xs text-slate-200 leading-relaxed">
+                    <span className="text-indigo-400 font-mono mt-0.5">✔</span>
                     <span>{detail}</span>
                   </li>
                 ))}
