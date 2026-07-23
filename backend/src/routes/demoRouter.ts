@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { asyncHandler, badRequest, notFound } from '../utils/errors.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import * as repo from '../data/repository.js';
-import { geminiService } from '../services/geminiService.js';
+import { groqService } from '../services/groqService.js';
 import type { PresentationResult } from '../types/index.js';
 
 export const demoRouter: Router = Router();
@@ -33,7 +33,7 @@ demoRouter.post('/teams/:id/verify-presentation', requireAuth, requireRole(['jud
     aiSummary: c.aiSummary,
   }));
 
-  const results: PresentationResult[] = await geminiService.verifyPresentation({
+  const results: PresentationResult[] = await groqService.verifyPresentation({
     claimedFeatures,
     commits,
     presentationTranscript: parsed.data.transcript,

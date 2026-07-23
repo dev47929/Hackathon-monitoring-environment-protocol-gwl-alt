@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 import type { Commit, Team, ActivityLog, ClaimedFeature, InterviewQuestion } from '../types/index.js'
 import { addCommitToTeam, addLog, getTeamById, findCommitByHash, recomputeTeamRisk, updateTeam } from '../data/repository.js'
 import { GitHubService, githubService } from './githubService.js'
-import { geminiService } from './geminiService.js'
+import { groqService } from './groqService.js'
 import { blockchainService, computeAiSummaryHash } from './blockchainService.js'
 import { config } from '../config/index.js'
 import type { NormalizedWebhookInput } from '../middleware/webhook.js'
@@ -53,7 +53,7 @@ export async function auditAndAnchorCommit(
     diffText = syntheticDiff(incoming)
   }
 
-  const analysis = await geminiService.analyzeCommit(diffText, {
+  const analysis = await groqService.analyzeCommit(diffText, {
     hash, message: incoming.message, author: incoming.author,
     additions: incoming.additions, deletions: incoming.deletions, changedFiles: incoming.changedFiles,
   })
@@ -117,7 +117,7 @@ export async function generateAndStoreInterviewQuestion(teamId: string): Promise
   }))
   if (lastCommits.length === 0) return null
   const claimsText = team.claimedFeatures.map((c) => c.claim).join('; ')
-  const ai = await geminiService.generateInterviewQuestion(lastCommits, claimsText)
+  const ai = await groqService.generateInterviewQuestion(lastCommits, claimsText)
   if (!ai) return null
   const question: InterviewQuestion = {
     id: newId('q'),

@@ -42,7 +42,7 @@ export interface GitHubConfig {
   apiVersion: string;
 }
 
-export interface GeminiConfig {
+export interface GroqConfig {
   apiKey: string;
   commitModel: string;
   interviewModel: string;
@@ -64,7 +64,7 @@ export interface Config {
   server: ServerConfig;
   database: DatabaseConfig;
   github: GitHubConfig;
-  gemini: GeminiConfig;
+  groq: GroqConfig;
   blockchain: BlockchainConfig;
 }
 
@@ -88,11 +88,11 @@ export const config: Config = {
     apiBase: 'https://api.github.com',
     apiVersion: '2022-11-28',
   },
-  gemini: {
-    apiKey: env('GEMINI_API_KEY'),
-    commitModel: 'gemini-2.5-flash',
-    interviewModel: 'gemini-2.5-flash',
-    presentationModel: 'gemini-2.5-pro',
+  groq: {
+    apiKey: env('GROQ_API_KEY'),
+    commitModel: env('GROQ_COMMIT_MODEL', 'openai/gpt-oss-20b'),
+    interviewModel: env('GROQ_INTERVIEW_MODEL', 'openai/gpt-oss-20b'),
+    presentationModel: env('GROQ_PRESENTATION_MODEL', 'openai/gpt-oss-20b'),
     maxDiffChars: 30000,
   },
   blockchain: {

@@ -6,7 +6,7 @@ import { optionalAuth, requireAuth, requireRole } from '../middleware/auth.js'
 import * as repo from '../data/repository.js'
 import { config } from '../config/index.js'
 import { GitHubService, githubService } from '../services/githubService.js'
-import { geminiService } from '../services/geminiService.js'
+import { groqService } from '../services/groqService.js'
 import { auditAndAnchorCommit } from '../services/auditPipeline.js'
 import { normalizeWebhookPayload, type NormalizedWebhookInput } from '../middleware/webhook.js'
 import type { Team } from '../types/index.js'
@@ -173,7 +173,7 @@ commitsRouter.post('/:hash/analyze', optionalAuth, asyncHandler(async (req, res)
   }
 
   // 4. Perform Gemini AI analysis
-  const result = await geminiService.getCommitAnalysis(overview, diff, {
+  const result = await groqService.getCommitAnalysis(overview, diff, {
     hash: commit.hash,
     message: commit.message,
     author: commit.author,

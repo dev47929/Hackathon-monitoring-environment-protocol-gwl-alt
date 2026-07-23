@@ -25,7 +25,7 @@ async function main(): Promise<void> {
     console.log('─────────────────────────────────────────────────────────────────')
     console.log(`  HackProof AI Backend listening on http://localhost:${config.server.port}`)
     console.log(`  Environment: ${config.server.nodeEnv}`)
-    console.log(`  Gemini configured:  ${config.gemini.apiKey ? 'yes' : 'no (heuristic fallback active)'}`)
+    console.log(`  Groq configured:    ${config.groq.apiKey ? 'yes' : 'no (heuristic fallback active)'}`)
     console.log(`  GitHub configured:  ${config.github.personalAccessToken ? 'yes' : 'no'}`)
     console.log(`  Blockchain mode:   ${config.blockchain.blockchainMode} (enabled: ${config.blockchain.enabled})`)
     console.log('─────────────────────────────────────────────────────────────────')

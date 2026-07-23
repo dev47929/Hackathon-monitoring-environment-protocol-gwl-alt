@@ -10,7 +10,7 @@ import { demoRouter } from './routes/demoRouter.js';
 import { analyticsRouter } from './routes/analyticsRouter.js';
 import { blockchainRouter } from './routes/blockchainRouter.js';
 import { authRouter } from './routes/authRouter.js';
-import { geminiService } from './services/geminiService.js';
+import { groqService } from './services/groqService.js';
 import { githubService } from './services/githubService.js';
 import { blockchainService } from './services/blockchainService.js';
 
@@ -47,7 +47,7 @@ app.get('/health', (_req, res) => {
     version: '1.0.0',
     timestamp: new Date().toISOString(),
     services: {
-      gemini: geminiService.isConfigured(),
+      groq: groqService.isConfigured(),
       github: githubService.isConfigured(),
       blockchain: blockchainService.isConfigured(),
       blockchainMode: blockchainService.mode(),

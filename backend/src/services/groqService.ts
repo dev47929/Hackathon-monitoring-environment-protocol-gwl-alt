@@ -1,10 +1,10 @@
 import crypto from 'node:crypto';
-import { GoogleGenAI } from '@google/genai';
+import OpenAI from 'openai';
 import { config } from '../config/index.js';
 import { commitAnalyzerSystemPrompt, interviewQuestionSystemPrompt, presentationVerifierSystemPrompt, commitAnalysisSystemPrompt, buildCommitDiffUserPrompt, buildInterviewUserPrompt, buildPresentationUserPrompt, buildCommitAnalysisUserPrompt } from './geminiPrompts.js';
 import type { CommitAnalysis, InterviewQuestionAI, PresentationResult, Category, PresentationStatus, ClaimStatus } from '../types/index.js';
 
-interface GeminiResponse<T> {
+interface GroqResponse<T> {
   data: T | null;
   raw: string;
   error?: string;
@@ -58,73 +58,70 @@ function normalizeCategory(value: unknown): Category {
   return 'other';
 }
 
-export class GeminiService {
-  private ai: GoogleGenAI | null = null;
+export class GroqService {
+  private client: OpenAI | null = null;
   private initialized = false;
 
-  private init(): GoogleGenAI | null {
-    if (this.initialized) return this.ai;
-    if (!config.gemini.apiKey) {
+  private init(): OpenAI | null {
+    if (this.initialized) return this.client;
+    if (!config.groq.apiKey) {
       this.initialized = true;
       return null;
     }
     try {
-      this.ai = new GoogleGenAI({ apiKey: config.gemini.apiKey });
+      this.client = new OpenAI({
+        apiKey: config.groq.apiKey,
+        baseURL: 'https://api.groq.com/openai/v1',
+      });
       this.initialized = true;
     } catch (err) {
-      console.warn('[gemini] Failed to initialize @google/genai client:', err instanceof Error ? err.message : err);
+      console.warn('[groq] Failed to initialize OpenAI client:', err instanceof Error ? err.message : err);
       this.initialized = true;
-      this.ai = null;
+      this.client = null;
     }
-    return this.ai;
+    return this.client;
   }
 
   isConfigured(): boolean {
-    return Boolean(config.gemini.apiKey) && this.init() !== null;
+    return Boolean(config.groq.apiKey) && this.init() !== null;
   }
 
-  private async generate(model: string, systemPrompt: string, userPrompt: string): Promise<GeminiResponse<string>> {
-    const ai = this.init();
-    if (!ai) {
-      return { data: null, raw: '', error: 'Gemini API key not configured' };
+  private async generate(model: string, systemPrompt: string, userPrompt: string): Promise<GroqResponse<string>> {
+    const client = this.init();
+    if (!client) {
+      return { data: null, raw: '', error: 'Groq API key not configured' };
     }
     try {
-      const response = await ai.models.generateContent({
+      const response = await client.chat.completions.create({
         model,
-        contents: userPrompt,
-        config: { systemInstruction: systemPrompt },
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
       });
-      let text: string;
-      const t = (response as { text?: unknown }).text;
-      if (typeof t === 'function') {
-        text = String((t as () => string)());
-      } else if (typeof t === 'string') {
-        text = t;
-      } else {
-        text = JSON.stringify(response ?? '');
-      }
+      const text = response.choices?.[0]?.message?.content ?? '';
       return { data: text, raw: text };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error('[gemini] Generation failed:', msg);
+      console.error('[groq] Generation failed:', msg);
       return { data: null, raw: '', error: msg };
     }
   }
 
   async analyzeCommit(diff: string, commitMeta: { hash: string; message: string; author: string; additions: number; deletions: number; changedFiles: string[] }): Promise<CommitAnalysis> {
     const userPrompt = buildCommitDiffUserPrompt(diff, commitMeta);
-    const { data, error } = await this.generate(config.gemini.commitModel, commitAnalyzerSystemPrompt, userPrompt);
+    const { data, error } = await this.generate(config.groq.commitModel, commitAnalyzerSystemPrompt, userPrompt);
 
     const fallback: CommitAnalysis = this.heuristicFallback(commitMeta);
 
     if (error || !data) {
-      console.warn('[gemini] analyzeCommit using heuristic fallback:', error || 'empty response');
+      console.warn('[groq] analyzeCommit using heuristic fallback:', error || 'empty response');
       return fallback;
     }
 
     const parsed = parseJsonResponse<Partial<CommitAnalysis>>(data);
     if (!parsed) {
-      console.warn('[gemini] analyzeCommit could not parse JSON, using heuristic fallback');
+      console.warn('[groq] analyzeCommit could not parse JSON, using heuristic fallback');
       return fallback;
     }
 
@@ -140,9 +137,9 @@ export class GeminiService {
 
   async generateInterviewQuestion(commitsSummary: { hash: string; message: string; changedFiles: string[]; additions: number; deletions: number; aiSummary: string }[], claimContext?: string): Promise<InterviewQuestionAI | null> {
     const userPrompt = buildInterviewUserPrompt(commitsSummary, claimContext);
-    const { data, error } = await this.generate(config.gemini.interviewModel, interviewQuestionSystemPrompt, userPrompt);
+    const { data, error } = await this.generate(config.groq.interviewModel, interviewQuestionSystemPrompt, userPrompt);
     if (error || !data) {
-      console.warn('[gemini] generateInterviewQuestion returned no usable output:', error);
+      console.warn('[groq] generateInterviewQuestion returned no usable output:', error);
       const topCommit = commitsSummary[0];
       return {
         question: `How did you design and implement the logic in commit '${topCommit?.message || 'recent commit'}' (${topCommit?.hash || 'HEAD'})?`,
@@ -172,7 +169,7 @@ export class GeminiService {
     presentationTranscript: string;
   }): Promise<PresentationResult[]> {
     const userPrompt = buildPresentationUserPrompt(args);
-    const { data, error } = await this.generate(config.gemini.presentationModel, presentationVerifierSystemPrompt, userPrompt);
+    const { data, error } = await this.generate(config.groq.presentationModel, presentationVerifierSystemPrompt, userPrompt);
 
     const fallbackResults: PresentationResult[] = args.claimedFeatures.map((cf) => ({
       claim: cf.claim,
@@ -182,7 +179,7 @@ export class GeminiService {
     }));
 
     if (error || !data) {
-      console.warn('[gemini] verifyPresentation using fallback:', error);
+      console.warn('[groq] verifyPresentation using fallback:', error);
       return fallbackResults;
     }
 
@@ -192,7 +189,7 @@ export class GeminiService {
       if (single?.results && Array.isArray(single.results)) {
         return this.normalizePresentationResults(single.results, args.claimedFeatures);
       }
-      console.warn('[gemini] verifyPresentation could not parse JSON, using fallback');
+      console.warn('[groq] verifyPresentation could not parse JSON, using fallback');
       return fallbackResults;
     }
     return this.normalizePresentationResults(parsed, args.claimedFeatures);
@@ -267,20 +264,20 @@ export class GeminiService {
 
     try {
       const userPrompt = buildCommitAnalysisUserPrompt(projectOverview, diff, commitMeta);
-      const { data, error } = await this.generate(config.gemini.commitModel, commitAnalysisSystemPrompt, userPrompt);
+      const { data, error } = await this.generate(config.groq.commitModel, commitAnalysisSystemPrompt, userPrompt);
       if (error || !data || !data.trim()) {
         return { analysis: fallbackText, model: 'fallback' };
       }
       const trimmed = data.trim().slice(0, 2000);
-      return { analysis: trimmed, model: config.gemini.commitModel };
+      return { analysis: trimmed, model: config.groq.commitModel };
     } catch (err) {
-      console.warn('[gemini] getCommitAnalysis exception:', err instanceof Error ? err.message : err);
+      console.warn('[groq] getCommitAnalysis exception:', err instanceof Error ? err.message : err);
       return { analysis: fallbackText, model: 'fallback' };
     }
   }
 }
 
-export const geminiService = new GeminiService();
-export default geminiService;
+export const groqService = new GroqService();
+export default groqService;
 
 export const __testing = { _hash: (s: string) => crypto.createHash('sha256').update(s).digest('hex') };
