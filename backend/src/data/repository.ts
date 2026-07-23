@@ -61,7 +61,7 @@ const teamInclude = { commits: true }
 // In-Memory Fallback Store
 const memTeams = new Map<string, Team>()
 const memLogs: ActivityLog[] = []
-const memUsers = new Map<string, { id: string; email: string; name: string; password: string; role: string; createdAt: Date }>()
+const memUsers = new Map<string, { id: string; email: string; name: string; password: string; role: string; teamId?: string; createdAt: Date }>()
 const memCommitAnalyses = new Map<string, CommitAnalysisRecord>()
 
 export async function getAllTeams(): Promise<Team[]> {
@@ -325,6 +325,7 @@ export async function createUser(data: {
   name: string;
   password: string;
   role: 'team' | 'organizer' | 'judge';
+  teamId?: string;
 }): Promise<User> {
   const newUser = {
     id: data.id,
@@ -332,17 +333,19 @@ export async function createUser(data: {
     name: data.name,
     password: data.password,
     role: data.role,
+    teamId: data.teamId,
     createdAt: new Date(),
   }
   memUsers.set(data.email.toLowerCase(), newUser)
   try {
     if (prisma.user) {
-      const row = await prisma.user.create({ data })
+      const row = await prisma.user.create({ data: { ...data, teamId: data.teamId ?? null } as any })
       return {
         id: row.id,
         email: row.email,
         name: row.name,
         role: row.role as User['role'],
+        teamId: row.teamId ?? undefined,
         createdAt: row.createdAt.toISOString(),
       }
     }
@@ -354,17 +357,18 @@ export async function createUser(data: {
     email: newUser.email,
     name: newUser.name,
     role: newUser.role as User['role'],
+    teamId: newUser.teamId,
     createdAt: newUser.createdAt.toISOString(),
   }
 }
 
-export async function findUserByEmail(email: string): Promise<{ id: string; email: string; name: string; password: string; role: string; createdAt: Date } | undefined> {
+export async function findUserByEmail(email: string): Promise<{ id: string; email: string; name: string; password: string; role: string; teamId?: string; createdAt: Date } | undefined> {
   const mem = memUsers.get(email.toLowerCase())
   if (mem) return mem
   try {
     if (prisma.user) {
       const row = await prisma.user.findUnique({ where: { email } })
-      if (row) return row
+      if (row) return { ...row, teamId: row.teamId ?? undefined }
     }
   } catch {
     // fallback

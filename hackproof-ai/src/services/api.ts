@@ -6,18 +6,6 @@ const API_BASE = (typeof window !== 'undefined' && (window.location.hostname ===
 
 const TOKEN_KEY = 'hackproof_token';
 
-const FALLBACK_EVENT = 'api:fallback';
-
-export function onApiFallback(callback: (endpoint: string) => void): () => void {
-  const handler = (e: CustomEvent<string>) => callback(e.detail);
-  window.addEventListener(FALLBACK_EVENT, handler as EventListener);
-  return () => window.removeEventListener(FALLBACK_EVENT, handler as EventListener);
-}
-
-function dispatchFallback(endpoint: string): void {
-  window.dispatchEvent(new CustomEvent(FALLBACK_EVENT, { detail: endpoint }));
-}
-
 export function getStoredToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -65,7 +53,6 @@ async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
     const res = await fetch(url, { ...options, headers: { ...authHeaders(), ...options?.headers } });
     return await handleResponse<T>(res);
   } catch (err) {
-    dispatchFallback(url);
     throw err;
   }
 }
@@ -86,7 +73,9 @@ export const TeamsAPI = {
     members: string[];
     description: string;
     readmeContent?: string;
-  }): Promise<{ status: string; message: string; data: { id: string; name: string; progress: number; commitsCount: number } }> {
+    email?: string;
+    password?: string;
+  }): Promise<{ status: string; message: string; data: { id: string; name: string; progress: number; commitsCount: number; email?: string } }> {
     return apiFetch(`${API_BASE}/api/teams`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -252,7 +241,8 @@ export const AuthAPI = {
     name: string;
     password: string;
     role: 'team' | 'organizer' | 'judge';
-  }): Promise<{ status: string; message: string; data: { user: { id: string; email: string; name: string; role: string; createdAt: string }; token: string } }> {
+    teamId?: string;
+  }): Promise<{ status: string; message: string; data: { user: { id: string; email: string; name: string; role: string; teamId?: string; createdAt: string }; token: string } }> {
     return apiFetch(`${API_BASE}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -260,7 +250,7 @@ export const AuthAPI = {
     });
   },
 
-  async login(email: string, password: string): Promise<{ status: string; data: { user: { id: string; email: string; name: string; role: string; createdAt: string }; token: string } }> {
+  async login(email: string, password: string): Promise<{ status: string; data: { user: { id: string; email: string; name: string; role: string; teamId?: string; createdAt: string }; token: string } }> {
     return apiFetch(`${API_BASE}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

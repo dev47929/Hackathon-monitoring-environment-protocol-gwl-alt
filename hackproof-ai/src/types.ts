@@ -126,6 +126,7 @@ export interface CommitAnalysisRecord {
   teamId: string;
   analysis: string;
   model: string;
+  cached?: boolean;
   createdAt: string;
 }
 

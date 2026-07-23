@@ -85,6 +85,7 @@ export interface User {
   email: string;
   name: string;
   role: 'team' | 'organizer' | 'judge';
+  teamId?: string;
   createdAt: string;
 }
 

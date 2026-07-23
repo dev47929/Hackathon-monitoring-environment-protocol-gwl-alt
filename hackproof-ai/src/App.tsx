@@ -15,7 +15,6 @@ import TeamDashboard from './components/TeamDashboard';
 import JudgeDashboard from './components/JudgeDashboard';
 import OrganizerDashboard from './components/OrganizerDashboard';
 import AuthGate from './components/AuthGate';
-import FallbackBanner from './components/FallbackBanner';
 import BlockchainExplorer from './components/BlockchainExplorer';
 
 function PrivateRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles: string[] }) {
@@ -154,7 +153,6 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <FallbackBanner />
 
       <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-slate-900 px-4 py-2 md:px-8">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">

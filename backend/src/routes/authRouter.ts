@@ -15,6 +15,7 @@ const registerSchema = z.object({
   name: z.string().min(1).max(120),
   password: z.string().min(8).max(128),
   role: z.enum(['team', 'organizer', 'judge']),
+  teamId: z.string().optional(),
 });
 
 function hashPassword(password: string): string {
@@ -46,6 +47,7 @@ authRouter.post('/register', asyncHandler(async (req, res) => {
     name: parsed.data.name,
     password: hashPassword(parsed.data.password),
     role: parsed.data.role,
+    teamId: parsed.data.teamId,
   });
 
   const tokenPayload = { userId: user.id, role: user.role };
@@ -79,6 +81,6 @@ authRouter.post('/login', asyncHandler(async (req, res) => {
 
   res.json({
     status: 'success',
-    data: { user: safeUser, token },
+    data: { user: { ...safeUser, teamId: row.teamId }, token },
   });
 }));

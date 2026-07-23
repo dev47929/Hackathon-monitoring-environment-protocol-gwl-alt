@@ -48,6 +48,7 @@ app.get('/health', (_req, res) => {
     timestamp: new Date().toISOString(),
     services: {
       groq: groqService.isConfigured(),
+      gemini: Boolean(config.gemini.apiKey),
       github: githubService.isConfigured(),
       blockchain: blockchainService.isConfigured(),
       blockchainMode: blockchainService.mode(),

@@ -63,6 +63,7 @@ export default function AuthGate({ teams, onLogin, onCancel, initialRole = 'team
       let token: string;
       let userRole: string;
       let userName: string;
+      let userTeamId: string | undefined;
 
       if (isSignUp) {
         const res = await AuthAPI.register({
@@ -74,11 +75,13 @@ export default function AuthGate({ teams, onLogin, onCancel, initialRole = 'team
         token = res.data.token;
         userRole = res.data.user.role;
         userName = res.data.user.name;
+        userTeamId = res.data.user.teamId;
       } else {
         const res = await AuthAPI.login(email.toLowerCase(), password);
         token = res.data.token;
         userRole = res.data.user.role;
         userName = res.data.user.name;
+        userTeamId = res.data.user.teamId;
       }
 
       setStoredToken(token);
@@ -86,16 +89,7 @@ export default function AuthGate({ teams, onLogin, onCancel, initialRole = 'team
       const decoded = decodeTokenPayload(token);
       const actualRole = (decoded?.role || userRole) as AuthenticatedUser['role'];
 
-      let teamId: string | undefined;
-      if (actualRole === 'team') {
-        const matchedTeam = teams.find(t =>
-          t.members.some(m =>
-            m.toLowerCase().includes(email.toLowerCase().split('@')[0]) ||
-            m.toLowerCase().includes(userName.toLowerCase().split(' ')[0])
-          )
-        );
-        teamId = matchedTeam?.id;
-      }
+      const teamId = userTeamId;
 
       const authenticatedUser: AuthenticatedUser = {
         email: email.toLowerCase(),

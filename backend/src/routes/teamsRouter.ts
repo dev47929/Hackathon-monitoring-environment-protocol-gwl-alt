@@ -1,8 +1,9 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
+import { randomBytes, scryptSync } from 'crypto'
 import type { Response } from 'express'
-import { asyncHandler, badRequest, notFound } from '../utils/errors.js'
+import { asyncHandler, badRequest, notFound, conflict } from '../utils/errors.js'
 import { optionalAuth, requireAuth, requireRole } from '../middleware/auth.js'
 import * as repo from '../data/repository.js'
 import { GitHubService } from '../services/githubService.js'
@@ -15,6 +16,12 @@ function notFoundResponse(res: Response): void {
   res.status(404).json({ status: 'error', message: 'Team not found.' })
 }
 
+function hashPassword(password: string): string {
+  const salt = randomBytes(16).toString('hex');
+  const derivedKey = scryptSync(password, salt, 64).toString('hex');
+  return `${salt}:${derivedKey}`;
+}
+
 const registerSchema = z.object({
   name: z.string().min(1).max(120),
   repoUrl: z.string().url().refine((u) => /github\.com/i.test(u), { message: 'repoUrl must be a GitHub URL' }),
@@ -23,6 +30,8 @@ const registerSchema = z.object({
   members: z.array(z.string()).min(1).max(20),
   description: z.string().max(2000).optional().default(''),
   readmeContent: z.string().max(10000).optional().default(''),
+  email: z.string().email().optional(),
+  password: z.string().min(8).max(128).optional(),
 })
 
 const patchSchema = z
@@ -95,6 +104,24 @@ teamsRouter.post('/', requireAuth, requireRole(['team', 'organizer']), asyncHand
   }
 
   await repo.addTeam(team)
+
+  let accountEmail: string | undefined
+  if (body.email && body.password) {
+    const existingUser = await repo.findUserByEmail(body.email)
+    if (existingUser) {
+      throw conflict('A user with this email is already registered.')
+    }
+    await repo.createUser({
+      id: `user-${uuidv4().slice(0, 8)}`,
+      email: body.email,
+      name: body.members[0] || body.name,
+      password: hashPassword(body.password),
+      role: 'team',
+      teamId: team.id,
+    })
+    accountEmail = body.email
+  }
+
   await repo.addLog({
     id: 'log-' + uuidv4().slice(0, 8),
     timestamp: new Date().toISOString(),
@@ -121,6 +148,7 @@ teamsRouter.post('/', requireAuth, requireRole(['team', 'organizer']), asyncHand
       name: team.name,
       progress: syncResult.progress,
       commitsCount: syncResult.commitsCount,
+      ...(accountEmail ? { email: accountEmail } : {}),
     },
   })
 }))

@@ -18,6 +18,7 @@ Public endpoint.
   "version": "1.0.0",
   "timestamp": "<ISO-8601>",
   "services": {
+    "groq": true,
     "gemini": true,
     "github": true,
     "blockchain": true,
@@ -46,6 +47,8 @@ Public.
 
 `role` enum: `team` | `organizer` | `judge`
 
+Optional: `teamId` — links a team user to their team record.
+
 **Response 201:**
 ```json
 {
@@ -57,6 +60,7 @@ Public.
       "email": "user@example.com",
       "name": "John Doe",
       "role": "team",
+      "teamId": "team-uuid",
       "createdAt": "2026-07-21T12:00:00.000Z"
     },
     "token": "<JWT>"
@@ -90,12 +94,15 @@ Public.
       "email": "user@example.com",
       "name": "John Doe",
       "role": "team",
+      "teamId": "team-uuid",
       "createdAt": "2026-07-21T12:00:00.000Z"
     },
     "token": "<JWT>"
   }
 }
 ```
+
+If the user has no team (judge/organizer), `teamId` is omitted.
 
 **Error:** 400 (invalid email or password)
 
@@ -153,9 +160,13 @@ Auth: required. Role: `team` | `organizer`
   "techStack": ["React", "Node.js"],
   "members": ["Alice", "Bob"],
   "description": "We build great things",
-  "readmeContent": "Optional project README for AI context"
+  "readmeContent": "Optional project README for AI context",
+  "email": "team@example.com",
+  "password": "securepass123"
 }
 ```
+
+`email` and `password` are optional. If provided, a User account with `role: "team"` is created and linked to the new team.
 
 **Response 201:**
 ```json
@@ -166,12 +177,15 @@ Auth: required. Role: `team` | `organizer`
     "id": "uuid",
     "name": "Team Alpha",
     "progress": 0,
-    "commitsCount": 0
+    "commitsCount": 0,
+    "email": "team@example.com"
   }
 }
 ```
 
-**Errors:** 400 (invalid payload, duplicate repoUrl, unparseable GitHub URL)
+`email` is only present in the response if a user account was created.
+
+**Errors:** 400 (invalid payload, duplicate repoUrl, unparseable GitHub URL), 409 (email already registered if email provided)
 
 ---
 
@@ -376,7 +390,7 @@ Trigger an AI-powered authenticity analysis of a commit. Results are cached serv
 {
   "analysis": "This commit aligns well with the project's stated goals of building a React-based dashboard. The changes are focused on the frontend layer...",
   "cached": false,
-  "model": "gemini-2.5-flash"
+  "model": "llama-3.1-8b-instant"
 }
 ```
 
@@ -385,7 +399,7 @@ Trigger an AI-powered authenticity analysis of a commit. Results are cached serv
 {
   "analysis": "This commit aligns well with the project's stated goals of building a React-based dashboard...",
   "cached": true,
-  "model": "gemini-2.5-flash"
+  "model": "llama-3.1-8b-instant"
 }
 ```
 

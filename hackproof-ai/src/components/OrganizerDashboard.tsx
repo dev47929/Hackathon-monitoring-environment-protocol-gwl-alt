@@ -4,7 +4,7 @@ import { TeamsAPI, AuthAPI } from '../services/api';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Users, BarChart2, GitCommit, ShieldAlert, Plus, Layers, 
-  Send, Terminal, Database, ArrowRight, CheckCircle2, AlertOctagon, RefreshCw, Cpu
+  Send, Terminal, Database, ArrowRight, CheckCircle2, AlertOctagon, RefreshCw, Cpu, UserPlus
 } from 'lucide-react';
 
 interface OrganizerDashboardProps {
@@ -16,151 +16,115 @@ interface OrganizerDashboardProps {
 }
 
 export default function OrganizerDashboard({ teams, stats, activityLogs, onRegisterTeam, onAddActivityLog }: OrganizerDashboardProps) {
-  // Register team form state
-  const [newTeamName, setNewTeamName] = useState('');
+  // Registration mode: 'team' or 'judge'
+  const [regMode, setRegMode] = useState<'team' | 'judge'>('team');
+  const [regName, setRegName] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [regError, setRegError] = useState('');
+  const [regSuccess, setRegSuccess] = useState('');
+
+  // Team-specific fields
   const [newTeamUrl, setNewTeamUrl] = useState('');
   const [newTeamLead, setNewTeamLead] = useState('');
   const [newTechStack, setNewTechStack] = useState('');
   const [newReadmeContent, setNewReadmeContent] = useState('');
-  const [isRegistering, setIsRegistering] = useState(false);
-
-  // User accounts form state
-  const [accountName, setAccountName] = useState('');
-  const [accountEmail, setAccountEmail] = useState('');
-  const [accountPassword, setAccountPassword] = useState('');
-  const [accountRole, setAccountRole] = useState<'team' | 'judge'>('team');
-  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
-  const [accountError, setAccountError] = useState('');
-  const [accountSuccess, setAccountSuccess] = useState('');
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<'analytics' | 'register' | 'logs' | 'accounts'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'register' | 'logs'>('analytics');
 
-  // Register Team Submit handler
-  const handleRegisterTeamSubmit = async (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTeamName.trim() || !newTeamUrl.trim()) return;
+    setRegError('');
+    setRegSuccess('');
 
-    setIsRegistering(true);
-    const techStack = newTechStack.trim() 
-      ? newTechStack.split(',').map(s => s.trim()).filter(Boolean)
-      : ['React', 'Tailwind', 'Node.js'];
-    const avatar = '🛸';
-    const description = 'A newly registered hackathon project.';
-
-    try {
-      const response = await TeamsAPI.register({
-        name: newTeamName,
-        repoUrl: newTeamUrl,
-        avatar,
-        techStack,
-        members: [newTeamLead ? `${newTeamLead} (Lead)` : 'Anonymous Hacker (Lead)'],
-        description,
-        readmeContent: newReadmeContent.slice(0, 10000),
-      });
-
-      const minimalTeam: Team = {
-        id: response.data.id,
-        name: response.data.name,
-        repoUrl: newTeamUrl,
-        avatar,
-        techStack,
-        members: [newTeamLead ? `${newTeamLead} (Lead)` : 'Anonymous Hacker (Lead)'],
-        progress: response.data.progress,
-        overallRiskScore: 0,
-        description,
-        readmeContent: newReadmeContent.slice(0, 10000),
-        commits: [],
-        claimedFeatures: [],
-        interviewQuestions: [],
-      };
-
-      onRegisterTeam(minimalTeam);
-    } catch (err) {
-      console.warn('Register API failed, using local fallback:', err);
-      const id = `team-${Date.now()}`;
-      const members = [newTeamLead ? `${newTeamLead} (Lead)` : 'Anonymous Hacker (Lead)'];
-
-      const newTeam: Team = {
-        id, name: newTeamName, repoUrl: newTeamUrl, avatar,
-        techStack, members, progress: 10, overallRiskScore: 0,
-        description,
-        commits: [{
-          hash: 'init001', timestamp: new Date().toISOString(),
-          author: newTeamLead || 'Lead Developer',
-          message: 'Initialize repository layout and basic readme documentation',
-          changedFiles: ['README.md', '.gitignore'],
-          additions: 15, deletions: 0,
-          aiSummary: 'Initialized new repo layout.',
-          featureEvolution: 'Initial project schema.',
-          category: 'docs' as const,
-          blockchainTx: '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join(''),
-          blockchainStatus: 'verified' as const,
-          riskScore: 2, justificationStatus: 'none' as const,
-        }],
-        claimedFeatures: [{ id: `cl-${id}-1`, claim: 'Core MVP Architecture', expectedEvidence: 'Config files', actualCodeReference: 'README.md', status: 'verified' as const }],
-        interviewQuestions: [{ id: `iq-${id}-1`, question: 'What is the core problem solved?', context: 'Initial registry.', suggestedAnswer: 'Focus on core usability foundations.' }],
-      };
-      onRegisterTeam(newTeam);
-    }
-
-    onAddActivityLog({
-      id: `log-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      type: 'success',
-      message: `HACKATHON REGISTRY: New team "${newTeamName}" registered repo ${newTeamUrl} successfully. Webhooks established.`,
-      teamName: newTeamName,
-    });
-
-    setNewTeamName('');
-    setNewTeamUrl('');
-    setNewTeamLead('');
-    setNewReadmeContent('');
-    setIsRegistering(false);
-    setActiveTab('analytics');
-  };
-
-  const handleCreateAccountSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!accountName.trim() || !accountEmail.trim() || !accountPassword.trim()) {
-      setAccountError('Please fill in all account credentials.');
+    if (!regName.trim() || !regEmail.trim() || !regPassword.trim()) {
+      setRegError('Please fill in all required fields.');
       return;
     }
-    if (accountPassword.length < 8) {
-      setAccountError('Secret Passkey must be at least 8 characters.');
+    if (regPassword.length < 8) {
+      setRegError('Password must be at least 8 characters.');
+      return;
+    }
+    if (regMode === 'team' && (!newTeamUrl.trim())) {
+      setRegError('GitHub Repository URL is required for team registration.');
       return;
     }
 
-    setIsCreatingAccount(true);
-    setAccountError('');
-    setAccountSuccess('');
+    setIsSubmitting(true);
 
     try {
-      await AuthAPI.register({
-        name: accountName.trim(),
-        email: accountEmail.trim().toLowerCase(),
-        password: accountPassword,
-        role: accountRole,
-      });
+      if (regMode === 'team') {
+        const techStack = newTechStack.trim()
+          ? newTechStack.split(',').map(s => s.trim()).filter(Boolean)
+          : ['React', 'Tailwind', 'Node.js'];
+        const avatar = '🛸';
+        const description = 'A newly registered hackathon project.';
+        const members = [newTeamLead ? `${newTeamLead} (Lead)` : regName];
 
-      setAccountSuccess(`Account provisioned successfully for "${accountName}" (${accountRole === 'team' ? 'Hacker' : 'Judge'})!`);
-      
-      onAddActivityLog({
-        id: `log-${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        type: 'success',
-        message: `IDENTITY PROTOCOL: Registered new user "${accountName}" with role "${accountRole}".`,
-        teamName: 'System',
-      });
+        const response = await TeamsAPI.register({
+          name: regName,
+          repoUrl: newTeamUrl,
+          avatar,
+          techStack,
+          members,
+          description,
+          readmeContent: newReadmeContent.slice(0, 10000),
+          email: regEmail.trim().toLowerCase(),
+          password: regPassword,
+        });
 
-      setAccountName('');
-      setAccountEmail('');
-      setAccountPassword('');
+        const minimalTeam: Team = {
+          id: response.data.id,
+          name: regName,
+          repoUrl: newTeamUrl,
+          avatar,
+          techStack,
+          members,
+          progress: response.data.progress,
+          overallRiskScore: 0,
+          description,
+          readmeContent: newReadmeContent.slice(0, 10000),
+          commits: [],
+          claimedFeatures: [],
+          interviewQuestions: [],
+        };
+
+        onRegisterTeam(minimalTeam);
+
+        onAddActivityLog({
+          id: `log-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          type: 'success',
+          message: `HACKATHON REGISTRY: Team "${regName}" registered with repo ${newTeamUrl}. Login credentials created for ${regEmail}.`,
+          teamName: regName,
+        });
+
+        setRegSuccess(`Team "${regName}" registered and login credentials created for ${regEmail}.`);
+      } else {
+        await AuthAPI.register({
+          name: regName.trim(),
+          email: regEmail.trim().toLowerCase(),
+          password: regPassword,
+          role: 'judge',
+        });
+
+        onAddActivityLog({
+          id: `log-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          type: 'success',
+          message: `IDENTITY PROTOCOL: Registered judge "${regName}" with email ${regEmail}.`,
+          teamName: 'System',
+        });
+
+        setRegSuccess(`Judge account "${regName}" created successfully.`);
+      }
     } catch (err: any) {
-      console.warn('Backend user registration error:', err);
-      setAccountError(err?.message || 'Error occurred while creating user account.');
+      console.warn('Registration error:', err);
+      setRegError(err?.message || 'Registration failed.');
     } finally {
-      setIsCreatingAccount(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -250,15 +214,15 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
               </button>
 
               <button
-                onClick={() => setActiveTab('register')}
+                onClick={() => { setActiveTab('register'); setRegMode('team'); }}
                 className={`w-full py-2.5 px-4 rounded-xl text-xs font-mono text-left flex items-center justify-between border cursor-pointer transition-all ${
                   activeTab === 'register'
                     ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300 font-bold'
                     : 'bg-slate-950/60 border-slate-850 text-slate-400 hover:text-slate-300'
                 }`}
               >
-                <span>➕ Register New Team</span>
-                <Plus className="w-4 h-4" />
+                <span>➕ Register Team / Judge</span>
+                <UserPlus className="w-4 h-4" />
               </button>
 
               <button
@@ -271,18 +235,6 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
               >
                 <span>📜 Activity Log</span>
                 <Database className="w-4 h-4" />
-              </button>
-
-              <button
-                onClick={() => setActiveTab('accounts')}
-                className={`w-full py-2.5 px-4 rounded-xl text-xs font-mono text-left flex items-center justify-between border cursor-pointer transition-all ${
-                  activeTab === 'accounts'
-                    ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300 font-bold'
-                    : 'bg-slate-950/60 border-slate-850 text-slate-400 hover:text-slate-300'
-                }`}
-              >
-                <span>👤 Add User Accounts</span>
-                <Users className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -371,7 +323,7 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
               </motion.div>
             )}
 
-            {/* Team Registry Tab */}
+            {/* Unified Registration Tab */}
             {activeTab === 'register' && (
               <motion.div
                 key="register"
@@ -380,91 +332,183 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
                 exit={{ opacity: 0, y: -5 }}
                 className="bg-slate-900 border border-slate-800 rounded-xl p-5 md:p-6 space-y-4"
               >
-                <div>
-                  <h4 className="text-sm font-semibold text-white uppercase tracking-wider font-mono">Register Participating Team</h4>
-                  <p className="text-xs text-slate-400 mt-1">Add a new cohort to the hackathon roster, establish GitHub webhook scopes, and initialize their secure metadata audit ledger.</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-semibold text-white uppercase tracking-wider font-mono">Register</h4>
+                    <p className="text-xs text-slate-400 mt-1">Register a new team or a judge. Login credentials are created automatically.</p>
+                  </div>
                 </div>
 
-                <form onSubmit={handleRegisterTeamSubmit} className="space-y-4">
+                {/* Mode Toggle */}
+                <div className="flex bg-slate-950 rounded-xl p-1 border border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => { setRegMode('team'); setRegError(''); setRegSuccess(''); }}
+                    className={`flex-1 py-2 px-4 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
+                      regMode === 'team'
+                        ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                        : 'text-slate-400 hover:text-slate-300'
+                    }`}
+                  >
+                    👥 Register Team
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setRegMode('judge'); setRegError(''); setRegSuccess(''); }}
+                    className={`flex-1 py-2 px-4 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
+                      regMode === 'judge'
+                        ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                        : 'text-slate-400 hover:text-slate-300'
+                    }`}
+                  >
+                    ⚖️ Register Judge
+                  </button>
+                </div>
+
+                <form onSubmit={handleRegisterSubmit} className="space-y-4">
+                  {regError && (
+                    <div className="p-3.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-xs font-mono">
+                      ⚠️ {regError}
+                    </div>
+                  )}
+
+                  {regSuccess && (
+                    <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-mono">
+                      ✅ {regSuccess}
+                    </div>
+                  )}
+
+                  {/* Common fields for both modes */}
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-mono text-slate-400 block uppercase">Team Name</label>
+                      <label className="text-xs font-mono text-slate-400 block uppercase">
+                        {regMode === 'team' ? 'Team Name' : 'Full Name'}
+                      </label>
                       <input
                         type="text"
-                        placeholder="e.g. BlocksSync AI"
-                        value={newTeamName}
-                        onChange={(e) => setNewTeamName(e.target.value)}
+                        placeholder={regMode === 'team' ? 'e.g. BlocksSync AI' : 'e.g. Alex Rivera'}
+                        value={regName}
+                        onChange={(e) => setRegName(e.target.value)}
                         required
                         className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-slate-750"
                       />
                     </div>
-                    
+
                     <div className="space-y-1.5">
-                      <label className="text-xs font-mono text-slate-400 block uppercase">Lead Representative</label>
+                      <label className="text-xs font-mono text-slate-400 block uppercase">Email (Login)</label>
                       <input
-                        type="text"
-                        placeholder="e.g. Liam Smith"
-                        value={newTeamLead}
-                        onChange={(e) => setNewTeamLead(e.target.value)}
+                        type="email"
+                        placeholder="e.g. team@example.com"
+                        value={regEmail}
+                        onChange={(e) => setRegEmail(e.target.value)}
                         required
                         className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-slate-750"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-mono text-slate-400 block uppercase">GitHub Repository URL</label>
-                    <input
-                      type="url"
-                      placeholder="https://github.com/myteam/project"
-                      value={newTeamUrl}
-                      onChange={(e) => setNewTeamUrl(e.target.value)}
-                      required
-                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-slate-750 font-mono"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-mono text-slate-400 block uppercase">Tech Stack (comma-separated)</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. TypeScript, React, Node.js"
-                      value={newTechStack}
-                      onChange={(e) => setNewTechStack(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-slate-750"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between items-center">
-                      <label className="text-xs font-mono text-slate-400 block uppercase">Project Overview / README Context</label>
-                      <span className={`text-[11px] font-mono ${newReadmeContent.length > 9500 ? 'text-amber-400' : 'text-slate-500'}`}>
-                        {newReadmeContent.length} / 10,000
-                      </span>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center">
+                        <label className="text-xs font-mono text-slate-400 uppercase">Password</label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+                            let autoPass = '';
+                            for (let i = 0; i < 12; i++) {
+                              autoPass += chars.charAt(Math.floor(Math.random() * chars.length));
+                            }
+                            setRegPassword(autoPass);
+                          }}
+                          className="text-[10px] font-mono text-indigo-400 hover:text-indigo-300 pointer-events-auto"
+                        >
+                          [Auto Key Generator]
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Min. 8 characters"
+                        value={regPassword}
+                        onChange={(e) => setRegPassword(e.target.value)}
+                        required
+                        className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-slate-750 font-mono"
+                      />
                     </div>
-                    <textarea
-                      rows={4}
-                      maxLength={10000}
-                      placeholder="Paste project README or architectural overview here to give Gemini AI rich context when auditing commit diffs..."
-                      value={newReadmeContent}
-                      onChange={(e) => setNewReadmeContent(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-slate-750 font-sans resize-y"
-                    />
+
+                    {regMode === 'team' && (
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-mono text-slate-400 block uppercase">Lead Representative</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Liam Smith"
+                          value={newTeamLead}
+                          onChange={(e) => setNewTeamLead(e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-slate-750"
+                        />
+                      </div>
+                    )}
                   </div>
+
+                  {/* Team-specific fields */}
+                  {regMode === 'team' && (
+                    <>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-mono text-slate-400 block uppercase">GitHub Repository URL</label>
+                        <input
+                          type="url"
+                          placeholder="https://github.com/myteam/project"
+                          value={newTeamUrl}
+                          onChange={(e) => setNewTeamUrl(e.target.value)}
+                          required
+                          className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-slate-750 font-mono"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-mono text-slate-400 block uppercase">Tech Stack (comma-separated)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. TypeScript, React, Node.js"
+                          value={newTechStack}
+                          onChange={(e) => setNewTechStack(e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-slate-750"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between items-center">
+                          <label className="text-xs font-mono text-slate-400 block uppercase">Project Overview / README Context</label>
+                          <span className={`text-[11px] font-mono ${newReadmeContent.length > 9500 ? 'text-amber-400' : 'text-slate-500'}`}>
+                            {newReadmeContent.length} / 10,000
+                          </span>
+                        </div>
+                        <textarea
+                          rows={4}
+                          maxLength={10000}
+                          placeholder="Paste project README or architectural overview here..."
+                          value={newReadmeContent}
+                          onChange={(e) => setNewReadmeContent(e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-slate-750 font-sans resize-y"
+                        />
+                      </div>
+                    </>
+                  )}
 
                   <button
                     type="submit"
-                    disabled={isRegistering}
+                    disabled={isSubmitting}
                     className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs font-mono flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                   >
-                    {isRegistering ? (
+                    {isSubmitting ? (
                       <>
                         <RefreshCw className="w-4 h-4 animate-spin" />
-                        COMMITTING LEDGER INITIALIZATION BLOCK...
+                        {regMode === 'team' ? 'REGISTERING TEAM & CREATING LOGIN...' : 'PROVISIONING JUDGE ACCOUNT...'}
                       </>
                     ) : (
                       <>
-                        <Plus className="w-4 h-4" /> REGISTER TEAM & DEPLOY WEBHOOKS
+                        {regMode === 'team' ? <Plus className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+                        {regMode === 'team' ? 'REGISTER TEAM & CREATE LOGIN' : 'CREATE JUDGE ACCOUNT'}
                       </>
                     )}
                   </button>
@@ -523,122 +567,7 @@ export default function OrganizerDashboard({ teams, stats, activityLogs, onRegis
                 </div>
               </motion.div>
             )}
-            {/* User provisioning console */}
-            {activeTab === 'accounts' && (
-              <motion.div
-                key="accounts"
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -5 }}
-                className="bg-slate-900 border border-slate-800 rounded-xl p-5 md:p-6 space-y-4"
-              >
-                <div>
-                  <h4 className="text-sm font-semibold text-white uppercase tracking-wider font-mono">Provision User Accounts</h4>
-                  <p className="text-xs text-slate-400 mt-1">Generate access credentials locally for hackers (teams) and judges. These details are written to the main credentials database.</p>
-                </div>
 
-                <form onSubmit={handleCreateAccountSubmit} className="space-y-4">
-                  
-                  {/* Status Lights */}
-                  {accountError && (
-                    <div className="p-3.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-xs font-mono">
-                      ⚠️ {accountError}
-                    </div>
-                  )}
-
-                  {accountSuccess && (
-                    <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-mono">
-                      ✅ {accountSuccess}
-                    </div>
-                  )}
-
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-mono text-slate-400 block uppercase">Full Name</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Alex Rivera"
-                        value={accountName}
-                        onChange={(e) => setAccountName(e.target.value)}
-                        required
-                        className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-slate-750"
-                      />
-                    </div>
-                    
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-mono text-slate-400 block uppercase">Authorized Role</label>
-                      <select
-                        value={accountRole}
-                        onChange={(e) => setAccountRole(e.target.value as 'team' | 'judge')}
-                        className="w-full bg-slate-950 border border-slate-850 rounded-xl px-2.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-slate-750 font-mono"
-                      >
-                        <option value="team">Hacker (Team)</option>
-                        <option value="judge">Judge (Cockpit)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-mono text-slate-400 block uppercase">Email Address</label>
-                      <input
-                        type="email"
-                        placeholder="e.g. alex@alphadevs.com"
-                        value={accountEmail}
-                        onChange={(e) => setAccountEmail(e.target.value)}
-                        required
-                        className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-slate-755"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between items-center">
-                        <label className="text-xs font-mono text-slate-400 uppercase">Secret Passkey</label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
-                            let autoPass = '';
-                            for (let i = 0; i < 12; i++) {
-                              autoPass += chars.charAt(Math.floor(Math.random() * chars.length));
-                            }
-                            setAccountPassword(autoPass);
-                          }}
-                          className="text-[10px] font-mono text-indigo-400 hover:text-indigo-300 pointer-events-auto"
-                        >
-                          [Auto Key Generator]
-                        </button>
-                      </div>
-                      <input
-                        type="text"
-                        placeholder="Min. 8 characters"
-                        value={accountPassword}
-                        onChange={(e) => setAccountPassword(e.target.value)}
-                        required
-                        className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-slate-755 font-mono"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isCreatingAccount}
-                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs font-mono flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-                  >
-                    {isCreatingAccount ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        PROVISIONING IDENTITY RECORD...
-                      </>
-                    ) : (
-                      <>
-                        <Users className="w-4 h-4" /> GENERATE USER ACCESS SET
-                      </>
-                    )}
-                  </button>
-                </form>
-              </motion.div>
-            )}
 
           </AnimatePresence>
         </div>

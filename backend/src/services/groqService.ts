@@ -60,12 +60,12 @@ function normalizeCategory(value: unknown): Category {
 
 export class GroqService {
   private client: OpenAI | null = null;
-  private initialized = false;
+  private groqInitialized = false;
 
-  private init(): OpenAI | null {
-    if (this.initialized) return this.client;
+  private initGroq(): OpenAI | null {
+    if (this.groqInitialized) return this.client;
     if (!config.groq.apiKey) {
-      this.initialized = true;
+      this.groqInitialized = true;
       return null;
     }
     try {
@@ -73,39 +73,74 @@ export class GroqService {
         apiKey: config.groq.apiKey,
         baseURL: 'https://api.groq.com/openai/v1',
       });
-      this.initialized = true;
+      this.groqInitialized = true;
     } catch (err) {
       console.warn('[groq] Failed to initialize OpenAI client:', err instanceof Error ? err.message : err);
-      this.initialized = true;
+      this.groqInitialized = true;
       this.client = null;
     }
     return this.client;
   }
 
   isConfigured(): boolean {
-    return Boolean(config.groq.apiKey) && this.init() !== null;
+    return Boolean(config.groq.apiKey) && this.initGroq() !== null;
   }
 
   private async generate(model: string, systemPrompt: string, userPrompt: string): Promise<GroqResponse<string>> {
-    const client = this.init();
-    if (!client) {
-      return { data: null, raw: '', error: 'Groq API key not configured' };
+    // Try Groq first
+    const groqClient = this.initGroq();
+    if (groqClient) {
+      try {
+        const response = await groqClient.chat.completions.create({
+          model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+        });
+        const text = response.choices?.[0]?.message?.content ?? '';
+        if (text) {
+          return { data: text, raw: text, error: undefined };
+        }
+      } catch (err) {
+        console.warn('[groq] Groq generation failed, attempting Gemini fallback:', err instanceof Error ? err.message : err);
+      }
     }
-    try {
-      const response = await client.chat.completions.create({
-        model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-      });
-      const text = response.choices?.[0]?.message?.content ?? '';
-      return { data: text, raw: text };
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error('[groq] Generation failed:', msg);
-      return { data: null, raw: '', error: msg };
+
+    // Fallback to Gemini (REST API with key in query string)
+    if (config.gemini.apiKey) {
+      try {
+        const geminiModel = model === config.groq.commitModel ? config.gemini.commitModel
+          : model === config.groq.interviewModel ? config.gemini.interviewModel
+          : config.gemini.presentationModel;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${config.gemini.apiKey}`;
+        const body = {
+          contents: [{ role: 'user', parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
+        };
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!resp.ok) {
+          const errText = await resp.text();
+          console.error('[groq] Gemini REST error:', resp.status, errText);
+          return { data: null, raw: '', error: `Gemini HTTP ${resp.status}: ${errText}` };
+        }
+        const json = await resp.json() as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
+        const text = json?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+        if (text) {
+          console.log('[groq] Using Gemini fallback successfully');
+          return { data: text, raw: text };
+        }
+      } catch (geminiErr) {
+        const msg = geminiErr instanceof Error ? geminiErr.message : String(geminiErr);
+        console.error('[groq] Gemini fallback also failed:', msg);
+        return { data: null, raw: '', error: `Groq failed, Gemini fallback also failed: ${msg}` };
+      }
     }
+
+    return { data: null, raw: '', error: 'Groq and Gemini fallback both unavailable' };
   }
 
   async analyzeCommit(diff: string, commitMeta: { hash: string; message: string; author: string; additions: number; deletions: number; changedFiles: string[] }): Promise<CommitAnalysis> {

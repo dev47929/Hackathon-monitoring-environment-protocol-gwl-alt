@@ -50,6 +50,14 @@ export interface GroqConfig {
   maxDiffChars: number;
 }
 
+export interface GeminiConfig {
+  apiKey: string;
+  commitModel: string;
+  interviewModel: string;
+  presentationModel: string;
+  maxDiffChars: number;
+}
+
 export interface BlockchainConfig {
   rpcUrl: string;
   privateKey: string;
@@ -65,6 +73,7 @@ export interface Config {
   database: DatabaseConfig;
   github: GitHubConfig;
   groq: GroqConfig;
+  gemini: GeminiConfig;
   blockchain: BlockchainConfig;
 }
 
@@ -93,6 +102,13 @@ export const config: Config = {
     commitModel: env('GROQ_COMMIT_MODEL', 'openai/gpt-oss-20b'),
     interviewModel: env('GROQ_INTERVIEW_MODEL', 'openai/gpt-oss-20b'),
     presentationModel: env('GROQ_PRESENTATION_MODEL', 'openai/gpt-oss-20b'),
+    maxDiffChars: 30000,
+  },
+  gemini: {
+    apiKey: env('GEMINI_API_KEY'),
+    commitModel: env('GEMINI_COMMIT_MODEL', 'gemini-2.5-flash'),
+    interviewModel: env('GEMINI_INTERVIEW_MODEL', 'gemini-2.5-flash'),
+    presentationModel: env('GEMINI_PRESENTATION_MODEL', 'gemini-2.5-pro'),
     maxDiffChars: 30000,
   },
   blockchain: {
