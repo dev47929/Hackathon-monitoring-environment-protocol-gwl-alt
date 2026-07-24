@@ -13,24 +13,6 @@ interface LandingPageProps {
 }
 
 export default function LandingPage({ onSelectRole }: LandingPageProps) {
-  const fullText = "Continuous, Transparent\n& Intelligent ";
-  const [typedText, setTypedText] = useState("");
-  const [isTypingDone, setIsTypingDone] = useState(false);
-
-  useEffect(() => {
-    let index = 0;
-    const interval = setInterval(() => {
-      if (index <= fullText.length) {
-        setTypedText(fullText.slice(0, index));
-        index++;
-      } else {
-        setIsTypingDone(true);
-        clearInterval(interval);
-      }
-    }, 45);
-    return () => clearInterval(interval);
-  }, []);
-
   const [hoveredSidebarIndex, setHoveredSidebarIndex] = useState<number>(0);
 
   const paradigmCards = [
@@ -140,12 +122,12 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
           glowColor="#120F17"
         />
       </div>
-      <div className="relative z-10 space-y-12 md:space-y-16 lg:space-y-24 px-4 sm:px-6 lg:px-12 max-w-7xl mx-auto py-6 sm:py-10">
+      <div className="relative z-10 space-y-12 md:space-y-16 lg:space-y-24 px-2 sm:px-4 lg:px-6 max-w-7xl mx-auto py-1 sm:py-2">
       {/* Hero Section — two-column layout */}
-      <section className="py-2 sm:py-4 md:py-8 space-y-8 sm:space-y-10">
+      <section className="py-0 space-y-8 sm:space-y-10">
 
         {/* Top row: text left, video right */}
-        <div className="flex flex-col lg:flex-row items-center lg:items-start gap-8 sm:gap-10 lg:gap-16">
+        <div className="flex flex-col lg:flex-row items-center lg:items-start gap-8 sm:gap-10 lg:gap-12">
 
           {/* LEFT: Text & badge */}
           <div className="flex-1 space-y-4 sm:space-y-6 text-left w-full">
@@ -155,19 +137,11 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
               transition={{ delay: 0.1 }}
             >
 
-              <h1 className="text-2xl sm:text-3xl md:text-4xl xl:text-5xl font-extrabold text-white tracking-tight leading-tight min-h-[3.2em] sm:min-h-[3.5em]">
-                <span className="whitespace-pre-line">{typedText}</span>
-                {isTypingDone && (
-                  <motion.span
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.5 }}
-                    className="bg-gradient-to-r from-blue-300 via-indigo-400 to-indigo-600 bg-clip-text text-transparent block sm:inline mt-1 sm:mt-0"
-                  >
-                    Hackathon Evaluation
-                  </motion.span>
-                )}
-                <span className="inline-block w-1.5 h-[0.9em] bg-indigo-400 ml-1 translate-y-1 animate-pulse" />
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[44px] font-extrabold text-white tracking-tight leading-[1.15] w-full">
+                <span className="whitespace-nowrap">Continuous, Transparent</span> &amp; Intelligent{' '}
+                <span className="bg-gradient-to-r from-blue-300 via-indigo-400 to-indigo-500 bg-clip-text text-transparent block mt-1.5">
+                  Hackathon Evaluation
+                </span>
               </h1>
             </motion.div>
 
@@ -236,7 +210,7 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 w-full sm:w-auto"
+          className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 w-full sm:w-auto mt-8 sm:mt-12"
         >
           <button
             onClick={() => onSelectRole('judge')}

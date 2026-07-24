@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  ShieldCheck, AlertCircle, X, Compass, RefreshCw, Lock, ShieldAlert, ArrowLeft, Zap
+  ShieldCheck, AlertCircle, X, Compass, RefreshCw, Lock, ShieldAlert, ArrowLeft, Zap, Users
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate, useParams } from 'react-router-dom';
 
@@ -168,7 +168,7 @@ export default function App() {
       </AnimatePresence>
 
 
-      <header className={`fixed top-0 left-0 right-0 z-50 px-0 py-0 transition-transform duration-300 ${showNav ? 'translate-y-0' : '-translate-y-full'}`}>
+      <header className={`${location.pathname === '/' ? 'fixed top-0 left-0 right-0 z-50 px-0 py-0 transition-transform duration-300 ' + (showNav ? 'translate-y-0' : '-translate-y-full') : 'relative z-50 px-0 py-0'}`}>
         <div className="relative">
           <DotField
             dotRadius={1.2}
@@ -200,12 +200,15 @@ export default function App() {
           </div>
 
           <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
-            <div className="flex items-center gap-1 p-0.5 rounded-lg">
+            <div className="flex items-center gap-1 p-0.5 rounded-lg flex-wrap">
               <button onClick={() => navigate('/')}
                 className="flex items-center gap-1 px-3 py-2 rounded-md text-sm font-mono font-semibold transition-all cursor-pointer text-slate-400 hover:text-slate-200">
                 <Compass className="w-4 h-4" /> <span className="hidden sm:inline">Landing</span>
               </button>
-              <button onClick={() => navigate('/team/team-1')}
+              
+
+
+              <button onClick={() => navigate(`/team/${selectedTeamId}`)}
                 className="flex items-center gap-1 px-3 py-2 rounded-md text-sm font-mono font-semibold transition-all cursor-pointer text-slate-400 hover:text-slate-200">
                 <span className="hidden sm:inline">Team Hub</span>
               </button>
@@ -248,7 +251,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="flex-grow max-w-7xl w-full mx-auto p-4 md:p-8">
+      <main className={`flex-grow max-w-7xl w-full mx-auto p-4 md:p-8 ${location.pathname === '/' ? 'pt-16 md:pt-20' : 'pt-4 md:pt-6'}`}>
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}

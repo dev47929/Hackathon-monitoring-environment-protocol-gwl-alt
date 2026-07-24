@@ -7,7 +7,7 @@ import {
   Trophy, ShieldAlert, CheckCircle2, AlertOctagon, Terminal, Play, 
   HelpCircle, Sparkles, FileText, Download, Users, Layers, Code, 
   Check, X, Eye, ArrowRight, CornerDownRight, Mic, RefreshCw, AlertCircle,
-  Mail, Send, RotateCcw
+  Mail, Send, RotateCcw, ChevronDown
 } from 'lucide-react';
 
 interface JudgeDashboardProps {
@@ -23,6 +23,7 @@ export default function JudgeDashboard({ teams, selectedTeamId, onSelectTeam, on
 
   // Tab state
   const [activeTab, setActiveTab] = useState<'timeline' | 'claims' | 'questions' | 'report'>('timeline');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   // Presentation transcription simulator state
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -247,32 +248,81 @@ ${currentTeam.interviewQuestions.map((q, idx) => `**Q${idx + 1}: ${q.question}**
           <p className="text-xs text-slate-400 mt-0.5">Select a participating team below to audit code timelines, interview them, and verify live presentation claims.</p>
         </div>
 
-        <div className="flex flex-wrap gap-2 overflow-x-auto pb-1">
-          {teams.map(t => {
-            const isSelected = t.id === selectedTeamId;
-            const flaggedCount = t.commits.filter(c => c.isSuspicious).length;
-            
-            return (
-              <button
-                key={t.id}
-                onClick={() => onSelectTeam(t.id)}
-                className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl border text-xs font-mono transition-all cursor-pointer ${
-                  isSelected
-                    ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold border-emerald-500 shadow-lg shadow-emerald-500/10'
-                    : 'bg-slate-900 hover:bg-slate-850 text-slate-300 border-slate-800'
-                }`}
-              >
-                <span className="font-semibold">{t.name}</span>
-                {flaggedCount > 0 && (
-                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                    isSelected ? 'bg-slate-950 text-rose-400' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                  }`}>
-                    {flaggedCount}!
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        {/* Custom Enhanced Team Selector Dropdown */}
+        <div className="relative min-w-[240px]">
+          <button
+            type="button"
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="w-full flex items-center justify-between gap-3 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 rounded-xl px-3.5 py-2.5 transition-all cursor-pointer shadow-lg shadow-black/20"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+                <Users className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col text-left min-w-0">
+                <span className="text-[10px] font-mono uppercase text-slate-400 font-bold leading-none tracking-wider">Active Evaluation</span>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xs font-bold text-white truncate">{currentTeam?.name || 'Select Team'}</span>
+                  {currentTeam && currentTeam.commits.filter(c => c.isSuspicious).length > 0 && (
+                    <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30 shrink-0">
+                      {currentTeam.commits.filter(c => c.isSuspicious).length} alerts
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 shrink-0 ${isDropdownOpen ? 'rotate-180 text-white' : ''}`} />
+          </button>
+
+          <AnimatePresence>
+            {isDropdownOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsDropdownOpen(false)} />
+                <motion.div
+                  initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 4, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 top-full z-50 w-full min-w-[260px] bg-slate-900/95 backdrop-blur-xl border border-slate-800 rounded-xl shadow-2xl overflow-hidden py-1.5"
+                >
+                  <div className="px-3 py-1.5 border-b border-slate-800/60 flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold uppercase text-slate-500 tracking-wider">Registered Teams ({teams.length})</span>
+                  </div>
+                  <div className="max-h-[240px] overflow-y-auto divide-y divide-slate-800/40">
+                    {teams.map(t => {
+                      const isSelected = t.id === selectedTeamId;
+                      const alertCount = t.commits.filter(c => c.isSuspicious).length;
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => {
+                            onSelectTeam(t.id);
+                            setIsDropdownOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-3.5 py-2.5 text-xs font-mono transition-colors text-left cursor-pointer ${
+                            isSelected
+                              ? 'bg-indigo-600/15 text-white font-bold border-l-2 border-indigo-400'
+                              : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className="text-base leading-none">{t.avatar || '⚡'}</span>
+                            <span className="truncate">{t.name}</span>
+                          </div>
+                          {alertCount > 0 && (
+                            <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/25 shrink-0 ml-2">
+                              {alertCount} alerts
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
